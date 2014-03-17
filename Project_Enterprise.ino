@@ -51,8 +51,8 @@ Servo engine1, engine2, engine3, engine4;
 
 double l;
 
-PID controller_X(&actual_Angles[0], &controller_Angles[0], &set_Angles[0], 1, 0, 0, DIRECT);
-PID controller_Y(&actual_Angles[1], &controller_Angles[1], &set_Angles[1], 1, 0, 0, DIRECT);
+PID controller_X(&actual_Angles[0], &controller_Angles[0], &set_Angles[0], 0.5, 0, 0, DIRECT);
+PID controller_Y(&actual_Angles[1], &controller_Angles[1], &set_Angles[1], 0.5, 0, 0, DIRECT);
 
 void setup() {
   
@@ -86,19 +86,21 @@ void loop() {
   
   digitalWrite(LED_PIN, HIGH);
   
-  controller_X.SetMode(MANUAL);
-  controller_Y.SetMode(MANUAL);
-  
   //#1 - get current parameters (actual_Angles)
   getAngles(actual_Angles);
   
   //#2 - calculate if we need to make any adjustments (controller_Angles)
-  controller_X.Compute();
-  controller_Y.Compute();
-  
   //#3 - do adjustments to engines
-  controlMixerPitch(controller_Angles[1]);
-  controlMixerRoll(controller_Angles[0]);
+//  if(abs(actual_Angles[0])>5)
+//  {
+    controller_X.Compute(); // roll
+    controlMixerRoll(controller_Angles[0]);
+//  }
+//  if(abs(actual_Angles[1])>5)
+//  {
+    controller_Y.Compute(); //pitch
+    controlMixerPitch(controller_Angles[1]);
+// }
   
   //#4 - check if we have new commands (set_Angles) 
   while (Serial.available() > 0)
@@ -126,7 +128,7 @@ void loop() {
 
         case 0x02:
           value = (double)((int)(((Serial.read())|(Serial.read()<<8))));
-          setSpeed(value);
+          setSpeed1(value);
 
           sprintf(str, "S_C: %26d\n", (int)value); /////////////////////////////
           Serial.write(str);
@@ -154,7 +156,7 @@ void loop() {
           gains_E3_Speed = (double)((int)(Serial.read())|(Serial.read()<<8))/100;
           gains_E4_Speed = (double)((int)(Serial.read())|(Serial.read()<<8))/100;
 
-          sprintf(str, "S: [%2.2f][%2.2f][%2.2f][%2.2f]\n", gains_E1_Speed, gains_E2_Speed, gains_E3_Speed, gains_E4_Speed); /////////////////////////////
+          //sprintf(str, "S: [%2.2f][%2.2f][%2.2f][%2.2f]\n", gains_E1_Speed, gains_E2_Speed, gains_E3_Speed, gains_E4_Speed); /////////////////////////////
           Serial.print("S: [ ");
           Serial.print(gains_E1_Speed);
           Serial.print("][ ");
@@ -224,7 +226,7 @@ void loop() {
   }
 }
 
-void setSpeed(double ang)
+void setSpeed1(double ang)
 {
   set_Angles[4]=ang;
   controlMixerSpeed(ang);
@@ -232,19 +234,22 @@ void setSpeed(double ang)
 
 void setPitch(double ang)
 {
-  set_Angles[0]=ang;
+  double temp=set_Angles[1];
+  set_Angles[1]=ang;
+
   
   //controlMixerPitch(ang);
-  controller_Y.Compute();
-  controlMixerPitch(controller_Angles[1]);
+  //controller_Y.Compute();
+  controlMixerPitch(set_Angles[1]-temp);
 }
 
 void setRoll(double ang)
 {
-  set_Angles[2]=ang;
+  double temp=set_Angles[0];
+  set_Angles[1]=ang;
   //controlMixerRoll(ang);
-  controller_X.Compute();
-  controlMixerPitch(controller_Angles[0]);
+  //controller_X.Compute();
+  controlMixerRoll(set_Angles[0]-temp);
 }
 
 void controlMixerSpeed(double ang)
@@ -286,11 +291,10 @@ void controlMixerPitch(double ang)
 
 void controlMixerRoll(double ang)
 {
-  engineTwo+=ang*gains_E2_Roll;
-  engineFour+=ang*gains_E4_Roll;
-  
   engineOne-=ang*gains_E1_Roll;
+  engineTwo+=ang*gains_E2_Roll;
   engineThree-=ang*gains_E3_Roll;
+  engineFour+=ang*gains_E4_Roll;
   
   checkEnginesX();
   updateEngineParameters();
