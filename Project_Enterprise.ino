@@ -19,8 +19,9 @@
 #define MAX_YAW_ANGLES 180
 
 #define MAX_SPEED_STEP (ENGINEMAXPWM-ENGINEMINPWM)/MAX_SPEED_ANGLES
-#define MAX_PITCH_STEP (ENGINEMAXPWM-ENGINEMINPWM)/MAX_PITCH_ANGLES
-#define MAX_ROLL_STEP (ENGINEMAXPWM-ENGINEMINPWM)/MAX_ROLL_ANGLES
+//#define MAX_PITCH_STEP (ENGINEMAXPWM-ENGINEMINPWM)/MAX_PITCH_ANGLES
+//#define MAX_PITCH_STEP
+//#define MAX_ROLL_STEP (ENGINEMAXPWM-ENGINEMINPWM)/MAX_ROLL_ANGLES
 #define MAX_YAW_STEP (ENGINEMAXPWM-ENGINEMINPWM)/MAX_YAW_ANGLES
 
 unsigned int engineOne=ENGINEMINPWM;
@@ -71,8 +72,8 @@ void setup() {
 
   controller_X.SetMode(AUTOMATIC);
   controller_Y.SetMode(AUTOMATIC); 
-  controller_X.SetOutputLimits(-180, 180);
-  controller_Y.SetOutputLimits(-180, 180);
+  controller_X.SetOutputLimits(-ENGINEMINPWM/2, ENGINEMINPWM/2);
+  controller_Y.SetOutputLimits(-ENGINEMINPWM/2, ENGINEMINPWM/2);
   controller_X.SetSampleTime(10);
   controller_Y.SetSampleTime(10);
 
@@ -84,6 +85,9 @@ void setup() {
 void loop() {
   
   digitalWrite(LED_PIN, HIGH);
+  
+  controller_X.SetMode(MANUAL);
+  controller_Y.SetMode(MANUAL);
   
   //#1 - get current parameters (actual_Angles)
   getAngles(actual_Angles);
@@ -145,8 +149,6 @@ void loop() {
           break;
           
           case 0x05: ///speed mixer settings
-                    
-                    
           gains_E1_Speed = (double)((int)(Serial.read())|(Serial.read()<<8))/100;
           gains_E2_Speed = (double)((int)(Serial.read())|(Serial.read()<<8))/100;
           gains_E3_Speed = (double)((int)(Serial.read())|(Serial.read()<<8))/100;
@@ -231,21 +233,26 @@ void setSpeed(double ang)
 void setPitch(double ang)
 {
   set_Angles[0]=ang;
-  controlMixerPitch(ang);
+  
+  //controlMixerPitch(ang);
+  controller_Y.Compute();
+  controlMixerPitch(controller_Angles[1]);
 }
 
 void setRoll(double ang)
 {
   set_Angles[2]=ang;
-  controlMixerRoll(ang);
+  //controlMixerRoll(ang);
+  controller_X.Compute();
+  controlMixerPitch(controller_Angles[0]);
 }
 
 void controlMixerSpeed(double ang)
 {
-  engineOne+=ang*MAX_SPEED_STEP*gains_E1_Speed;
-  engineTwo+=ang*MAX_SPEED_STEP*gains_E2_Speed;
-  engineThree+=ang*MAX_SPEED_STEP*gains_E3_Speed;
-  engineFour+=ang*MAX_SPEED_STEP*gains_E4_Speed;
+  engineOne=ang*MAX_SPEED_STEP*gains_E1_Speed+ENGINEMINPWM;
+  engineTwo=ang*MAX_SPEED_STEP*gains_E2_Speed+ENGINEMINPWM;
+  engineThree=ang*MAX_SPEED_STEP*gains_E3_Speed+ENGINEMINPWM;
+  engineFour=ang*MAX_SPEED_STEP*gains_E4_Speed+ENGINEMINPWM;
   
   checkEnginesX();
   updateEngineParameters();
@@ -266,11 +273,11 @@ void checkEnginesX()
 
 void controlMixerPitch(double ang)
 { 
-  engineOne+=ang*MAX_PITCH_STEP*gains_E1_Pitch;
-  engineTwo+=ang*MAX_PITCH_STEP*gains_E2_Pitch;
+  engineOne+=ang*gains_E1_Pitch;
+  engineTwo+=ang*gains_E2_Pitch;
   
-  engineThree-=ang*MAX_PITCH_STEP*gains_E3_Pitch;
-  engineFour-=ang*MAX_PITCH_STEP*gains_E4_Pitch;
+  engineThree-=ang*gains_E3_Pitch;
+  engineFour-=ang*gains_E4_Pitch;
   
   checkEnginesX();
   updateEngineParameters();
@@ -279,11 +286,11 @@ void controlMixerPitch(double ang)
 
 void controlMixerRoll(double ang)
 {
-  engineTwo+=ang*MAX_ROLL_STEP*gains_E2_Roll;
-  engineFour+=ang*MAX_ROLL_STEP*gains_E4_Roll;
+  engineTwo+=ang*gains_E2_Roll;
+  engineFour+=ang*gains_E4_Roll;
   
-  engineOne-=ang*MAX_ROLL_STEP*gains_E1_Roll;
-  engineThree-=ang*MAX_ROLL_STEP*gains_E3_Roll;
+  engineOne-=ang*gains_E1_Roll;
+  engineThree-=ang*gains_E3_Roll;
   
   checkEnginesX();
   updateEngineParameters();
@@ -333,9 +340,9 @@ void sendData ()
   buffer[21] = (z>>8) & 0xFF;
   
   //controller Angles
-  x=(int)(controller_Angles[0]*10);
-  y=(int)(controller_Angles[1]*10);
-  z=(int)(controller_Angles[2]*10);
+  x=(int)(controller_Angles[0]);
+  y=(int)(controller_Angles[1]);
+  z=(int)(controller_Angles[2]);
   
   buffer[22] = x & 0xFF;
   buffer[23] = (x>>8) & 0xFF;
