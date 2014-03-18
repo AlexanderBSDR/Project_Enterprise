@@ -18,6 +18,8 @@
 #define MAX_ROLL_ANGLES 180
 #define MAX_YAW_ANGLES 180
 
+extern double acc_vector[3];
+
 #define MAX_SPEED_STEP (ENGINEMAXPWM-ENGINEMINPWM)/MAX_SPEED_ANGLES
 //#define MAX_PITCH_STEP (ENGINEMAXPWM-ENGINEMINPWM)/MAX_PITCH_ANGLES
 //#define MAX_PITCH_STEP
@@ -101,6 +103,7 @@ void loop() {
   
   //#1 - get current parameters (actual_Angles)
   getAngles(actual_Angles);
+  printVibrations();
   //#2 - calculate if we need to make any adjustments (controller_Angles)
   controller_X.Compute(); // roll
   controller_Y.Compute(); //pitch
@@ -389,6 +392,17 @@ void updateEngineParameters()
 {
   for(int i=0; i<4; i++)
    enginesX_obj[i].writeMicroseconds(enginesX[i]);
+}
+
+void printVibrations()
+{
+  Serial.print("Vibration x/y/z: ");  
+  Serial.print(abs(acc_vector[0]), 2);
+  Serial.print("/");
+  Serial.print(abs(acc_vector[1]), 2);
+  Serial.print("/");
+  Serial.print(abs(acc_vector[2]), 2);
+  Serial.println();
 }
 
 ///// TO BE DELETED

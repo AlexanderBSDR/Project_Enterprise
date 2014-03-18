@@ -8,6 +8,8 @@ int gyro_offset_z=0;
 double gyro_weight=0.98;
 
 double gyro_angles[3];
+double acc_vector[3];
+
 long lastTime=0;
 int interval=0;
 
@@ -41,7 +43,6 @@ void initSensorsStick()
 
 void getAngles(double *Angles)
 {
-  double acc_vector[3];
   double gyro_rate_vector[3];
   read_ADXL345(acc_vector); 
   read_ITG3205(gyro_rate_vector);
