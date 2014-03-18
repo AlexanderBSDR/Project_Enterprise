@@ -21,21 +21,8 @@
 extern double acc_vector[3];
 
 #define MAX_SPEED_STEP (ENGINEMAXPWM-ENGINEMINPWM)/MAX_SPEED_ANGLES
-//#define MAX_PITCH_STEP (ENGINEMAXPWM-ENGINEMINPWM)/MAX_PITCH_ANGLES
-//#define MAX_PITCH_STEP
-//#define MAX_ROLL_STEP (ENGINEMAXPWM-ENGINEMINPWM)/MAX_ROLL_ANGLES
-#define MAX_YAW_STEP (ENGINEMAXPWM-ENGINEMINPWM)/MAX_YAW_ANGLES
 
 unsigned int enginesX[4]={ENGINEMINPWM, ENGINEMINPWM, ENGINEMINPWM, ENGINEMINPWM};
-//unsigned int engineOne=ENGINEMINPWM;
-//unsigned int engineTwo=ENGINEMINPWM;
-//unsigned int engineThree=ENGINEMINPWM;
-//unsigned int engineFour=ENGINEMINPWM;
-
-//mixer's settings
-//double gains_E1_Speed=1, gains_E2_Speed=1, gains_E3_Speed=1, gains_E4_Speed=1;
-//double gains_E1_Pitch=1, gains_E2_Pitch=1, gains_E3_Pitch=1, gains_E4_Pitch=1;
-//double gains_E1_Roll=1, gains_E2_Roll=1, gains_E3_Roll=1, gains_E4_Roll=1;
 
 double gains_Speed[4]={1, 1, 1, 1};
 double gains_Pitch[4]={1, 1, 1, 1};
@@ -45,26 +32,22 @@ double gains_Yaw[4]={1, 1, 1, 1};
 
 double pid_Pitch_Settings[3], pid_Roll_Settings[3], pid_Yaw_Settings[3];
 
-//double pid_Pitch_P=0.5, pid_Roll_P=0.5;
-//double pid_Pitch_I=0.0, pid_Roll_I=0.0;
-//double pid_Pitch_D=0.0, pid_Roll_D=0.0;
-
-unsigned int timerDataUpdate=200;
+unsigned int timerDataUpdate=100;
 
 #define maxPacketSize 32
 //[0xFF][0x20]//[2][2][2][2]-engines//[2][2][2]-accell//[2][2][2]-gyro//[2][2][2]-compass//[2]-battery//[2]-height
 //2+8+6+6+6+2+2=32
 
-double actual_Angles[4];
-double set_Angles[4];
-double controller_Angles[4];
+double actual_Angles[3];
+double set_Angles[3];
+double controller_Angles[3];
+
+double set_Speed;
 
 unsigned int batteryPower=0;
 unsigned long previousMillis = 0;
 
 Servo enginesX_obj[4];
-
-double l;
 
 PID controller_X(&actual_Angles[0], &controller_Angles[0], &set_Angles[0], pid_Roll_Settings[0], pid_Roll_Settings[1], pid_Roll_Settings[2], DIRECT);
 PID controller_Y(&actual_Angles[1], &controller_Angles[1], &set_Angles[1], pid_Pitch_Settings[0], pid_Pitch_Settings[1], pid_Pitch_Settings[2], DIRECT);
@@ -84,9 +67,11 @@ void setup() {
   
   enginesX_obj[3].attach(ENGINE_FOUR_PIN);
   //engine4.writeMicroseconds(engineFour);
-
-//  controller_X.SetMode(AUTOMATIC);
-//  controller_Y.SetMode(AUTOMATIC); 
+  
+  controller_X.SetTunings(pid_Roll_Settings[0], pid_Roll_Settings[1], pid_Roll_Settings[2]);
+  controller_Y.SetTunings(pid_Pitch_Settings[0], pid_Pitch_Settings[1], pid_Pitch_Settings[2]);
+  controller_X.SetMode(AUTOMATIC);
+  controller_Y.SetMode(AUTOMATIC); 
   controller_X.SetOutputLimits(-ENGINEMINPWM/2, ENGINEMINPWM/2);
   controller_Y.SetOutputLimits(-ENGINEMINPWM/2, ENGINEMINPWM/2);
   controller_X.SetSampleTime(10);
@@ -103,12 +88,12 @@ void loop() {
   
   //#1 - get current parameters (actual_Angles)
   getAngles(actual_Angles);
-  printVibrations();
   //#2 - calculate if we need to make any adjustments (controller_Angles)
   controller_X.Compute(); // roll
   controller_Y.Compute(); //pitch
   //#3 - do adjustments to engines
-  generateEnginesSpeeds(set_Angles[4], controller_Angles[1], controller_Angles[0]);
+  //if(set_Angles[4]>0)
+  generateEnginesSpeeds(set_Speed, controller_Angles[1], controller_Angles[0]);
   updateEngineParameters();
   
   //#4 - check if we have new commands (set_Angles) 
@@ -117,12 +102,13 @@ void loop() {
     delay(1); //let's delete it later!
     while (Serial.read() == 0xFF)
     {
-      double value = 0;
+      double v = 0;
       char str[maxPacketSize];
    
       switch (Serial.read())
       {
         case 0x01:
+        {
           for(int i=0; i<4; i++)
             enginesX[i] = (unsigned int)((Serial.read())|(Serial.read()<<8));
             
@@ -137,39 +123,43 @@ void loop() {
           Serial.println();
 
           break;
+        };
 
         case 0x02:
-          value = (double)((int)(((Serial.read())|(Serial.read()<<8))));
-          set_Angles[4]=value;
+        {
+          v = (double)((int)(((Serial.read())|(Serial.read()<<8))));
+          set_Speed=v;
           
-          sprintf(str, "S_C: %26d\n", (int)value); /////////////////////////////
+          sprintf(str, "S_C: %26d\n", (int)v); /////////////////////////////
           Serial.write(str);
           break;
+        };
 
         case 0x03: 
-          value = (double)((int)(((Serial.read())|(Serial.read()<<8))));
-          set_Angles[1]+=value;
+        {
+          v = (double)((int)(((Serial.read())|(Serial.read()<<8))));
+         // set_Angles[1]+=v2;
 
-          sprintf(str, "P_C: %26d\n", (int)value); /////////////////////////////
+          sprintf(str, "P_C: %26d\n", (int)v); /////////////////////////////
           Serial.write(str);
           break;
+        };
 
         case 0x04:
-          value = (double)((int)(((Serial.read())|(Serial.read()<<8))));
-          set_Angles[0]+=value;
+        {
+          v = (double)((int)(((Serial.read())|(Serial.read()<<8))));
+          //set_Angles[0]+=v3;
 
-          sprintf(str, "R_C: %26d\n", (int)value); /////////////////////////////
+          sprintf(str, "R_C: %26d\n", (int)v); /////////////////////////////
           Serial.write(str);
           break;
+        };
           
           case 0x05: ///speed mixer settings
+          {
           for(int i=0; i<4; i++)
             gains_Speed[i] = (double)((int)(Serial.read())|(Serial.read()<<8))/100;
-//          gains_E2_Speed = (double)((int)(Serial.read())|(Serial.read()<<8))/100;
-//          gains_E3_Speed = (double)((int)(Serial.read())|(Serial.read()<<8))/100;
-//          gains_E4_Speed = (double)((int)(Serial.read())|(Serial.read()<<8))/100;
 
-          //sprintf(str, "S: [%2.2f][%2.2f][%2.2f][%2.2f]\n", gains_E1_Speed, gains_E2_Speed, gains_E3_Speed, gains_E4_Speed); /////////////////////////////
           Serial.print("Speed:     ");
           for (int i=0; i<4; i++)
           {
@@ -178,13 +168,13 @@ void loop() {
           }
           Serial.println();
           break;
+          };
           
           case 0x06: ///pitch mixer settings
+          {
           for(int i=0; i<4; i++)
             gains_Pitch[i] = (double)((int)(Serial.read())|(Serial.read()<<8))/100;
 
- //         sprintf(str, "S: [%2.2f][%2.2f][%2.2f][%2.2f]\n", gains_E1_Pitch, gains_E2_Pitch, gains_E3_Pitch, gains_E4_Pitch); /////////////////////////////
- //         Serial.write(str);
           Serial.print("Pitch:     ");
           for (int i=0; i<4; i++)
           {
@@ -193,14 +183,13 @@ void loop() {
           }
           Serial.println();
           break;
-          
+          };
           
           case 0x07: ///roll mixer settings
+          {
           for(int i=0; i<4; i++)
             gains_Roll[i] = (double)((int)(Serial.read())|(Serial.read()<<8))/100;
 
-     //     sprintf(str, "S: [%2.2f][%2.2f][%2.2f][%2.2f]\n", gains_E1_Roll, gains_E2_Roll, gains_E3_Roll, gains_E4_Roll); /////////////////////////////
-     //     Serial.write(str);
           Serial.print("Roll:      ");
           for (int i=0; i<4; i++)
           {
@@ -209,47 +198,43 @@ void loop() {
           }
           Serial.println();
           break;
+          };
           
           case 0x08: ///pitch mixer settings
+          {
           for(int i=0; i<3; i++)
             pid_Pitch_Settings[i] = (double)((int)(Serial.read())|(Serial.read()<<8))/100;
-          //pid_Pitch_D = (double)((int)(Serial.read())|(Serial.read()<<8))/100;
-          //pid_Pitch_I = (double)((int)(Serial.read())|(Serial.read()<<8))/100;
           for(int i=0; i<3; i++)
             pid_Roll_Settings[i] = (double)((int)(Serial.read())|(Serial.read()<<8))/100;
 
-//          pid_Roll_P = (double)((int)(Serial.read())|(Serial.read()<<8))/100;
-//          pid_Roll_D = (double)((int)(Serial.read())|(Serial.read()<<8))/100;
-//          pid_Roll_I = (double)((int)(Serial.read())|(Serial.read()<<8))/100;
-
- //         sprintf(str, "S: [%2.2f][%2.2f][%2.2f][%2.2f]\n", gains_E1_Pitch, gains_E2_Pitch, gains_E3_Pitch, gains_E4_Pitch); /////////////////////////////
- //         Serial.write(str);
-          Serial.print("PP P/I/D: [");
+          Serial.print("P:");
           Serial.print(pid_Pitch_Settings[0]);
-          Serial.print("][");
+          Serial.print("/");
           Serial.print(pid_Pitch_Settings[1]);
-          Serial.print("][");
+          Serial.print("/");
           Serial.print(pid_Pitch_Settings[2]);
-          Serial.println("]");
-          
-          Serial.print("RL P/I/D: [");
+          Serial.print("/");
           Serial.print(pid_Roll_Settings[0]);
-          Serial.print("][");
+          Serial.print("/");
           Serial.print(pid_Roll_Settings[1]);
-          Serial.print("][");
+          Serial.print("/");
           Serial.print(pid_Roll_Settings[2]);
-          Serial.println("]");
+          Serial.println();
           
           flash_PID_Settings();
           
           controller_Y.SetTunings(pid_Pitch_Settings[0], pid_Pitch_Settings[1], pid_Pitch_Settings[2]);
           controller_X.SetTunings(pid_Roll_Settings[0], pid_Roll_Settings[1], pid_Roll_Settings[2]);
           
+          printVibrations();  //<-----------
           break;
+          };
 
           case 0x09:
+          {
           timerDataUpdate=(unsigned int)((Serial.read())|(Serial.read()<<8));
           break; 
+          };
       }
     }
   }
@@ -279,28 +264,28 @@ void generateEnginesSpeeds(double speed_input, double pitch_input, double roll_i
 {
   //speed settings
   for(int i=0; i<4; i++)
-    enginesX[i]=speed_input*MAX_SPEED_STEP*gains_Speed[i]+ENGINEMINPWM;
+    enginesX[i]=(unsigned int)(speed_input*MAX_SPEED_STEP*gains_Speed[i]+ENGINEMINPWM);
 
   
   //pitch settings
-  enginesX[0]+=pitch_input*gains_Pitch[0];
-  enginesX[1]+=pitch_input*gains_Pitch[1];
-  enginesX[2]-=pitch_input*gains_Pitch[2];
-  enginesX[3]-=pitch_input*gains_Pitch[3];
+  enginesX[0]+=(unsigned int)(pitch_input*gains_Pitch[0]);
+  enginesX[1]+=(unsigned int)(pitch_input*gains_Pitch[1]);
+  enginesX[2]-=(unsigned int)(pitch_input*gains_Pitch[2]);
+  enginesX[3]-=(unsigned int)(pitch_input*gains_Pitch[3]);
   
   //roll settings
-  enginesX[0]-=roll_input*gains_Roll[0];
-  enginesX[1]+=roll_input*gains_Roll[1];
-  enginesX[2]-=roll_input*gains_Roll[2];
-  enginesX[3]+=roll_input*gains_Roll[3];
+  enginesX[0]-=(unsigned int)(roll_input*gains_Roll[0]);
+  enginesX[1]+=(unsigned int)(roll_input*gains_Roll[1]);
+  enginesX[2]-=(unsigned int)(roll_input*gains_Roll[2]);
+  enginesX[3]+=(unsigned int)(roll_input*gains_Roll[3]);
   
-  checkEnginesX();  
+  checkEnginesX();
 }
 
 
 void sendData ()
 {
-  int value;
+  int value=0;
   int altitude=20000;
   uint8_t buffer[maxPacketSize];
 
@@ -313,14 +298,14 @@ void sendData ()
     buffer[2*i+2]=enginesX[i] & 0xFF;
     buffer[2*i+3]=(enginesX[i] >> 8) & 0xFF;
   }
- // buffer[2]=engineOne & 0xFF;
- // buffer[3]=(engineOne>>8) & 0xFF;
- // buffer[4]=engineTwo & 0xFF;
- // buffer[5]=(engineTwo>>8) & 0xFF;
- // buffer[6]=engineThree & 0xFF;
- // buffer[7]=(engineThree>>8) & 0xFF;
- // buffer[8]=engineFour & 0xFF;
- // buffer[9]=(engineFour>>8) & 0xFF;
+  /*buffer[2]=enginesX[0] & 0xFF;
+  buffer[3]=(enginesX[0]>>8) & 0xFF;
+  buffer[4]=enginesX[1] & 0xFF;
+  buffer[5]=(enginesX[1]>>8) & 0xFF;
+  buffer[6]=enginesX[2] & 0xFF;
+  buffer[7]=(enginesX[2]>>8) & 0xFF;
+  buffer[8]=enginesX[3] & 0xFF;
+  buffer[9]=(enginesX[3]>>8) & 0xFF;*/
 
   //estAngles
   for(int i=0; i<3; i++)
@@ -396,7 +381,7 @@ void updateEngineParameters()
 
 void printVibrations()
 {
-  Serial.print("Vibration x/y/z: ");  
+  Serial.print("Vibrations x/y/z:");  
   Serial.print(abs(acc_vector[0]), 2);
   Serial.print("/");
   Serial.print(abs(acc_vector[1]), 2);
@@ -404,67 +389,3 @@ void printVibrations()
   Serial.print(abs(acc_vector[2]), 2);
   Serial.println();
 }
-
-///// TO BE DELETED
-
-/*void controlMixerPitch(double ang)
-{ 
-  engineOne+=ang*gains_E1_Pitch;
-  engineTwo+=ang*gains_E2_Pitch;
-  
-  engineThree-=ang*gains_E3_Pitch;
-  engineFour-=ang*gains_E4_Pitch;
-  
-  checkEnginesX();
-  updateEngineParameters();
-
-}
-
-void controlMixerRoll(double ang)
-{
-  engineOne-=ang*gains_E1_Roll;
-  engineTwo+=ang*gains_E2_Roll;
-  engineThree-=ang*gains_E3_Roll;
-  engineFour+=ang*gains_E4_Roll;
-  
-  checkEnginesX();
-  updateEngineParameters();
-}
-
-void controlMixerSpeed(double ang)
-{
-  engineOne=ang*MAX_SPEED_STEP*gains_E1_Speed+ENGINEMINPWM;
-  engineTwo=ang*MAX_SPEED_STEP*gains_E2_Speed+ENGINEMINPWM;
-  engineThree=ang*MAX_SPEED_STEP*gains_E3_Speed+ENGINEMINPWM;
-  engineFour=ang*MAX_SPEED_STEP*gains_E4_Speed+ENGINEMINPWM;
-
-  checkEnginesX();
-  updateEngineParameters();
-}
-
-
-void setSpeed(double ang)
-{
-  set_Angles[4]=ang;
-  //controlMixerSpeed(ang);
-}
-
-void setPitch(double ang)
-{
- // double temp=set_Angles[1];
-
-  
-  //controlMixerPitch(ang);
-  //controller_Y.Compute();
-  //controlMixerPitch(set_Angles[1]-temp);
-}
-
-void setRoll(double ang)
-{
-  //double temp=set_Angles[0];
-  set_Angles[0]+=ang;
-  //controlMixerRoll(ang);
-  //controller_X.Compute();
-  //controlMixerRoll(set_Angles[0]-temp);
-}
-*/
