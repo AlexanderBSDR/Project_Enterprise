@@ -15,6 +15,7 @@
 
 #define ENGINEMAXPWM 2000
 #define ENGINEMINPWM 1000
+#define ENGINESTARTUPPWM 900
 
 
 #define MAX_SPEED_ANGLES 360
@@ -31,7 +32,9 @@ double gains_Pitch[4]={1, 1, 1, 1};
 double gains_Roll[4]={1, 1, 1, 1};
 double gains_Yaw[4]={1, 1, 1, 1};
 
-double pid_Pitch_Settings[3], pid_Roll_Settings[3], pid_Yaw_Settings[3];
+double pid_Pitch_Settings[3]={2,0,0};
+double pid_Roll_Settings[3]={2,0,0}; 
+double pid_Yaw_Settings[3]={0,0,0};
 
 unsigned int timerDataUpdate=100;
 
@@ -47,6 +50,8 @@ double set_Speed;
 unsigned int batteryPower=0;
 unsigned long previousMillis = 0;
 
+bool isManual=false;
+
 Servo enginesX_obj[4];
 
 PID controller_X(&actual_Angles[0], &controller_Angles[0], &set_Angles[0], pid_Roll_Settings[0], pid_Roll_Settings[1], pid_Roll_Settings[2], DIRECT);
@@ -55,21 +60,22 @@ PID controller_Z(&actual_Angles[2], &controller_Angles[2], &set_Angles[2], pid_Y
 
 
 void setup() {
-  
+  #if USE_EEPROM==1
   initialize_Enterprise_EEPROM();
+  #endif
   initSensorsStick();
 
   enginesX_obj[0].attach(ENGINE_ONE_PIN);
-  //engine1.writeMicroseconds(engineOne);
+  enginesX_obj[0].writeMicroseconds(ENGINESTARTUPPWM);
   
   enginesX_obj[1].attach(ENGINE_TWO_PIN);
-  //engine2.writeMicroseconds(engineTwo);
+  enginesX_obj[1].writeMicroseconds(ENGINESTARTUPPWM);
   
   enginesX_obj[2].attach(ENGINE_THREE_PIN);
-  //engine3.writeMicroseconds(engineThree);
+  enginesX_obj[2].writeMicroseconds(ENGINESTARTUPPWM);
   
   enginesX_obj[3].attach(ENGINE_FOUR_PIN);
-  //engine4.writeMicroseconds(engineFour);
+  enginesX_obj[3].writeMicroseconds(ENGINESTARTUPPWM);
   
   controller_X.SetTunings(pid_Roll_Settings[0], pid_Roll_Settings[1], pid_Roll_Settings[2]);
   controller_Y.SetTunings(pid_Pitch_Settings[0], pid_Pitch_Settings[1], pid_Pitch_Settings[2]);
@@ -105,7 +111,8 @@ void loop() {
 
   //#3 - do adjustments to engines
   //if(set_Angles[4]>0)
-  generateEnginesSpeeds(set_Speed, controller_Angles[1], controller_Angles[0], controller_Angles[2]);
+  if (isManual==false)
+    generateEnginesSpeeds(set_Speed, controller_Angles[1], controller_Angles[0], controller_Angles[2]);
   updateEngineParameters();
   
   //#4 - check if we have new commands (set_Angles) 
@@ -121,6 +128,7 @@ void loop() {
       {
         case 0x01:
         {
+          isManual=true;
           for(int i=0; i<4; i++)
             enginesX[i] = (unsigned int)((Serial.read())|(Serial.read()<<8));
             
@@ -142,6 +150,7 @@ void loop() {
         case 0x02:
         {
           set_Speed = (double)((int)(((Serial.read())|(Serial.read()<<8))));
+          isManual=false;
           
           #if DEBUG_MODE==1
           sprintf(str, "S_C: %26d\n", (int)set_Speed); /////////////////////////////
@@ -153,6 +162,7 @@ void loop() {
         case 0x03: 
         {
           v = (double)((int)(((Serial.read())|(Serial.read()<<8))));
+          isManual=false;
          // set_Angles[1]+=v;
          
           #if DEBUG_MODE==1
@@ -165,6 +175,7 @@ void loop() {
         case 0x04:
         {
           v = (double)((int)(((Serial.read())|(Serial.read()<<8))));
+          isManual=false;
           //set_Angles[0]+=v;
           
           #if DEBUG_MODE==1
@@ -177,6 +188,7 @@ void loop() {
         case 0x33:
         {
           v = (double)((int)(((Serial.read())|(Serial.read()<<8))));
+          isManual=false;
           //set_Angles[2]+=v;
           
           #if DEBUG_MODE==1

@@ -5,7 +5,7 @@ int gyro_offset_x=0;
 int gyro_offset_y=0;
 int gyro_offset_z=0;
 
-double gyro_weight=0.98;
+double gyro_weight=1;
 
 double gyro_angles[3];
 double acc_vector[3];
