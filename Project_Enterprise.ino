@@ -34,7 +34,7 @@ double gains_Yaw[4]={1, 1, 1, 1};
 
 double pid_Pitch_Settings[3]={2,0,0};
 double pid_Roll_Settings[3]={2,0,0}; 
-double pid_Yaw_Settings[3]={0,0,0};
+double pid_Yaw_Settings[3]={2,0,0};
 
 unsigned int timerDataUpdate=100;
 
@@ -379,8 +379,8 @@ void generateEnginesSpeeds(double speed_input, double pitch_input, double roll_i
   
   //enginesX[0]+=(unsigned int)(yaw_input*gains_Yaw[0]);
   //enginesX[1]-=(unsigned int)(yaw_input*gains_Yaw[1]);
-  //enginesX[2]-=(unsigned int)(yaw_input*gains_Yaw[2]);
-  //enginesX[3]+=(unsigned int)(yaw_input*gains_Yaw[3]);
+  //enginesX[2]+=(unsigned int)(yaw_input*gains_Yaw[2]);
+  //enginesX[3]-=(unsigned int)(yaw_input*gains_Yaw[3]);
   
   checkEnginesX();
 }
