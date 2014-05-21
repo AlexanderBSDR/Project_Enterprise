@@ -9,8 +9,8 @@
 
 #define ENGINE_ONE_PIN 5
 #define ENGINE_TWO_PIN 6
-#define ENGINE_THREE_PIN 10
-#define ENGINE_FOUR_PIN 11
+#define ENGINE_THREE_PIN 11
+#define ENGINE_FOUR_PIN 10
 #define LED_PIN 13
 
 #define ENGINEMAXPWM 2000
@@ -370,10 +370,10 @@ void generateEnginesSpeeds(double speed_input, double pitch_input, double roll_i
   enginesX[3]-=(unsigned int)(pitch_input*gains_Pitch[3]);
   
   //roll settings
-  enginesX[0]-=(unsigned int)(roll_input*gains_Roll[0]);
-  enginesX[1]+=(unsigned int)(roll_input*gains_Roll[1]);
-  enginesX[2]-=(unsigned int)(roll_input*gains_Roll[2]);
-  enginesX[3]+=(unsigned int)(roll_input*gains_Roll[3]);
+  enginesX[0]+=(unsigned int)(roll_input*gains_Roll[0]);
+  enginesX[1]-=(unsigned int)(roll_input*gains_Roll[1]);
+  enginesX[2]+=(unsigned int)(roll_input*gains_Roll[2]);
+  enginesX[3]-=(unsigned int)(roll_input*gains_Roll[3]);
   
   //yaw settettings
   

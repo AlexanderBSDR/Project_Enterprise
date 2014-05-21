@@ -5,7 +5,7 @@ int gyro_offset_x=0;
 int gyro_offset_y=0;
 int gyro_offset_z=0;
 
-double gyro_weight=1;
+double gyro_weight=0.98;
 
 double gyro_angles[3];
 double acc_vector[3];
@@ -67,8 +67,8 @@ void getAngles(double *Angles)
   estimated_angle_x=gyro_weight*(estimated_angle_x+gyro_rate_vector[0]*(double)interval/1000.0f)+(1-gyro_weight)*(atan2(acc_vector[0], acc_vector[2])/PI*180);
   estimated_angle_y=gyro_weight*(estimated_angle_y+gyro_rate_vector[1]*(double)interval/1000.0f)+(1-gyro_weight)*(atan2(acc_vector[1], acc_vector[2])/PI*180);
   
-  Angles[0]=estimated_angle_x;
-  Angles[1]=estimated_angle_y;
+  Angles[1]=estimated_angle_x;
+  Angles[0]=estimated_angle_y;
   Angles[2]=gyro_angles[2];
  
 }
