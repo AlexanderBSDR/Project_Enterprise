@@ -33,6 +33,7 @@ double estimated_angle_y=0;
 
 void initSensorsStick()
 {
+  TWBR = ((F_CPU / 400000L) - 16)/2;
   Wire.begin();
   Serial.begin(115200);
   
@@ -82,10 +83,19 @@ void read_ITG3205(double *coords)
 
 void init_ITG3200()
 {
-  writeTo(ITG3205_DEVICE, ITG3205_PWR_MGM, 0x00);
-  writeTo(ITG3205_DEVICE, ITG3205_SMPLRT_DIV, 0x0f);
-  writeTo(ITG3205_DEVICE, ITG3205_DLPF_FS, 0x1A); //1e
-  writeTo(ITG3205_DEVICE, ITG3205_INT_CFG, 0x00);
+
+//  writeTo(ITG3205_DEVICE, ITG3205_PWR_MGM, 0x00);
+//  writeTo(ITG3205_DEVICE, ITG3205_SMPLRT_DIV, 0x0f);
+//  writeTo(ITG3205_DEVICE, ITG3205_DLPF_FS, 0x1A); //1e
+//  writeTo(ITG3205_DEVICE, ITG3205_INT_CFG, 0x00);
+
+  delay(100); //added
+  writeTo(ITG3205_DEVICE, 0x3E, 0x80); //reset a device
+  delay(5);
+  writeTo(ITG3205_DEVICE, 0x16, ITG3205_INT_CFG);
+  delay(5);
+  writeTo(ITG3205_DEVICE, 0x3E, 0x03);
+  delay(100);
   
   for (int i=0; i<ITG3205_CALIBRATION_SAMPLE; i++)
     {
@@ -111,10 +121,11 @@ void read_ADXL345(double *coords)
 }
 
 void init_ADXL345(int c)
-{
-  writeTo(ADXL345_DEVICE, 0X2C, 0x0F);  
-  writeTo(ADXL345_DEVICE , 0x2D, 0x08);
-  writeTo(ADXL345_DEVICE , 0x31, 0x0B);
+{ 
+  delay(10); //// added
+  writeTo(ADXL345_DEVICE , 0x2D, 0x08); //changed order
+  writeTo(ADXL345_DEVICE , 0x31, 0x0B); //changed order
+  writeTo(ADXL345_DEVICE, 0X2C, 0x0F); //changed order  
   
   if(c==0)
   {

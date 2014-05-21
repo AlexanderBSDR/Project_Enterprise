@@ -14,9 +14,9 @@
 #define ADXL345_OFFSET_Z 433
 
 #define ITG3205_DEVICE (0x68)
-#define ITG3205_SMPLRT_DIV 0x15
+#define ITG3205_SMPLRT_DIV 0x00 //old value - 0x15
 #define ITG3205_DLPF_FS 0x16
-#define ITG3205_INT_CFG 0x17
+#define ITG3205_INT_CFG 0x18 //old value 0x17
 #define ITG3205_PWR_MGM 0x3E
 #define ITG3205_DATABYTES 8
 
