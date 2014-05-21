@@ -13,8 +13,12 @@ double acc_vector[3];
 long lastTime=0;
 int interval=0;
 
+int ACC_LPF_VALUE=4;
+
+
 double estimated_angle_x=0;
 double estimated_angle_y=0;
+
 
 //byte buff_sensors[MAX_SENSORS_DATABYTES];
 
@@ -45,7 +49,7 @@ void initSensorsStick()
 void getAngles(double *Angles)
 {
   double gyro_rate_vector[3];
-  read_ADXL345(acc_vector); 
+  read_ADXL345(acc_vector);
   read_ITG3205(gyro_rate_vector);
   
   long currentTime=millis();
@@ -115,9 +119,13 @@ void read_ADXL345(double *coords)
 {
   readFrom(ADXL345_DEVICE, 0x32, ADXL345_DATABYTES , buff_sensors);
   
-  coords[0] = (float)(((buff_sensors[1]) << 8) | buff_sensors[0]);   
-  coords[1] = (float)(((buff_sensors[3])<< 8) | buff_sensors[2]);
-  coords[2] = (float)(((buff_sensors[5]) << 8) | buff_sensors[4]);
+  coords[0]=coords[0]*(1-1/2^ACC_LPF_VALUE)+((float)(((buff_sensors[1]) << 8) | buff_sensors[0]))*(1/2^ACC_LPF_VALUE);
+  coords[1]=coords[1]*(1-1/2^ACC_LPF_VALUE)+((float)(((buff_sensors[3]) << 8) | buff_sensors[2]))*(1/2^ACC_LPF_VALUE);
+  coords[2]=coords[2]*(1-1/2^ACC_LPF_VALUE)+((float)(((buff_sensors[5]) << 8) | buff_sensors[4]))*(1/2^ACC_LPF_VALUE);
+  
+  //coords[0] = (float)(((buff_sensors[1]) << 8) | buff_sensors[0]);   
+  //coords[1] = (float)(((buff_sensors[3])<< 8) | buff_sensors[2]);
+  //coords[2] = (float)(((buff_sensors[5]) << 8) | buff_sensors[4]);
 }
 
 void init_ADXL345(int c)
