@@ -18,10 +18,10 @@
 #define ENGINESTARTUPPWM 900
 
 
-#define MAX_SPEED_ANGLES 360
-#define MAX_PITCH_ANGLES 180
-#define MAX_ROLL_ANGLES 180
-#define MAX_YAW_ANGLES 180
+#define MAX_SPEED_ANGLES ENGINEMAXPWM
+#define MAX_PITCH_ANGLES 90
+#define MAX_ROLL_ANGLES 90
+#define MAX_YAW_ANGLES 90
 #define MAX_SPEED_STEP (ENGINEMAXPWM-ENGINEMINPWM)/MAX_SPEED_ANGLES
 
 extern double acc_vector[3];
@@ -85,9 +85,9 @@ void setup() {
   controller_Y.SetMode(AUTOMATIC);
   controller_Z.SetMode(AUTOMATIC); 
  
-  controller_X.SetOutputLimits(-ENGINEMINPWM/2, ENGINEMINPWM/2);
-  controller_Y.SetOutputLimits(-ENGINEMINPWM/2, ENGINEMINPWM/2);
-  controller_Z.SetOutputLimits(-ENGINEMINPWM/2, ENGINEMINPWM/2);
+  controller_X.SetOutputLimits(-MAX_PITCH_ANGLES, MAX_PITCH_ANGLES);
+  controller_Y.SetOutputLimits(-MAX_ROLL_ANGLES, MAX_ROLL_ANGLES);
+  controller_Z.SetOutputLimits(-MAX_YAW_ANGLES, MAX_YAW_ANGLES);
 
   controller_X.SetSampleTime(10);
   controller_Y.SetSampleTime(10);
@@ -357,12 +357,7 @@ void checkEnginesX()
 }
 
 void generateEnginesSpeeds(double speed_input, double pitch_input, double roll_input, double yaw_input)
-{
-  //speed settings
-  for(int i=0; i<4; i++)
-    enginesX[i]=(unsigned int)(speed_input*MAX_SPEED_STEP*gains_Speed[i]+ENGINEMINPWM);
-
-  
+{  
   //pitch settings
   enginesX[0]+=(unsigned int)(pitch_input*gains_Pitch[0]);
   enginesX[1]+=(unsigned int)(pitch_input*gains_Pitch[1]);
@@ -370,10 +365,10 @@ void generateEnginesSpeeds(double speed_input, double pitch_input, double roll_i
   enginesX[3]-=(unsigned int)(pitch_input*gains_Pitch[3]);
   
   //roll settings
-  enginesX[0]+=(unsigned int)(roll_input*gains_Roll[0]);
-  enginesX[1]-=(unsigned int)(roll_input*gains_Roll[1]);
-  enginesX[2]+=(unsigned int)(roll_input*gains_Roll[2]);
-  enginesX[3]-=(unsigned int)(roll_input*gains_Roll[3]);
+  enginesX[0]-=(unsigned int)(roll_input*gains_Roll[0]);
+  enginesX[1]+=(unsigned int)(roll_input*gains_Roll[1]);
+  enginesX[2]-=(unsigned int)(roll_input*gains_Roll[2]);
+  enginesX[3]+=(unsigned int)(roll_input*gains_Roll[3]);
   
   //yaw settettings
   
@@ -382,6 +377,13 @@ void generateEnginesSpeeds(double speed_input, double pitch_input, double roll_i
   //enginesX[2]+=(unsigned int)(yaw_input*gains_Yaw[2]);
   //enginesX[3]-=(unsigned int)(yaw_input*gains_Yaw[3]);
   
+  //speed settings
+  for(int i=0; i<4; i++)
+    enginesX[i]=(unsigned int)(speed_input*gains_Speed[i]+ENGINEMINPWM);
+    
+ // for(int i=0; i<4; i++)
+ //   enginesX[i]=(unsigned int)(enginesX[i]*speed_input*gains_Speed[i]);
+ 
   checkEnginesX();
 }
 
@@ -421,7 +423,7 @@ void sendData ()
   //controller Angles
   for(int i=0; i<3; i++)
   {
-    value=(int)(controller_Angles[i]);
+    value=(int)(controller_Angles[i]*10);
     buffer[2*i+22] = value & 0xFF;
     buffer[2*i+23] = (value >> 8) & 0xFF;
   }
