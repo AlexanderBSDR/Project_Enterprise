@@ -5,6 +5,10 @@ int gyro_offset_x=0;
 int gyro_offset_y=0;
 int gyro_offset_z=0;
 
+#ifndef cbi
+#define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
+#endif
+
 double gyro_weight=0.98;
 
 double gyro_angles[3];
@@ -14,7 +18,6 @@ long lastTime=0;
 int interval=0;
 
 int ACC_LPF_VALUE=4;
-
 
 double estimated_angle_x=0;
 double estimated_angle_y=0;
@@ -37,6 +40,8 @@ double estimated_angle_y=0;
 
 void initSensorsStick()
 {
+  cbi (PORTC, 4);
+  cbi (PORTC, 5);
   TWBR = ((F_CPU / 400000L) - 16)/2;
   Wire.begin();
   Serial.begin(115200);

@@ -4,6 +4,7 @@
 
 #include "DOF_Sensors.h"
 
+#define CALC_EXECUTION_TIME 1
 #define USE_EEPROM 0
 #define DEBUG_MODE 1
 
@@ -18,7 +19,7 @@
 #define ENGINESTARTUPPWM 900
 
 
-#define MAX_SPEED_ANGLES ENGINEMAXPWM
+#define MAX_SPEED_ANGLES 360
 #define MAX_PITCH_ANGLES 90
 #define MAX_ROLL_ANGLES 90
 #define MAX_YAW_ANGLES 90
@@ -26,6 +27,8 @@
 
 extern double acc_vector[3];
 unsigned int enginesX[4];
+
+unsigned int altitude=0;
 
 double gains_Speed[4]={1, 1, 1, 1};
 double gains_Pitch[4]={1, 1, 1, 1};
@@ -100,10 +103,14 @@ void setup() {
 
 void loop() {
   
-  digitalWrite(LED_PIN, HIGH);
+  //digitalWrite(LED_PIN, HIGH);
+  #if CALC_EXECUTION_TIME==1
+    unsigned long start=micros();
+  #endif
   
   //#1 - get current parameters (actual_Angles)
   getAngles(actual_Angles);
+  
   //#2 - calculate if we need to make any adjustments (controller_Angles)
   controller_Y.Compute(); //pitch
   controller_X.Compute(); // roll
@@ -345,6 +352,12 @@ void loop() {
     sendData();
     digitalWrite(LED_PIN, LOW);
   }
+  
+  #if CALC_EXECUTION_TIME==1
+    unsigned long stop=micros();
+    altitude=(unsigned int)(stop-start);
+  #endif
+  
 }
 
 void checkEnginesX()
@@ -358,6 +371,18 @@ void checkEnginesX()
 
 void generateEnginesSpeeds(double speed_input, double pitch_input, double roll_input, double yaw_input)
 {  
+  
+  //speed settings
+  for(int i=0; i<4; i++)
+    enginesX[i]=(unsigned int)(speed_input*MAX_SPEED_STEP*gains_Speed[i]+ENGINEMINPWM);
+ 
+  //yaw settettings 
+  enginesX[0]+=(unsigned int)(yaw_input*gains_Yaw[0]);
+  enginesX[1]-=(unsigned int)(yaw_input*gains_Yaw[1]);
+  enginesX[2]+=(unsigned int)(yaw_input*gains_Yaw[2]);
+  enginesX[3]-=(unsigned int)(yaw_input*gains_Yaw[3]);
+  
+  
   //pitch settings
   enginesX[0]+=(unsigned int)(pitch_input*gains_Pitch[0]);
   enginesX[1]+=(unsigned int)(pitch_input*gains_Pitch[1]);
@@ -369,21 +394,7 @@ void generateEnginesSpeeds(double speed_input, double pitch_input, double roll_i
   enginesX[1]+=(unsigned int)(roll_input*gains_Roll[1]);
   enginesX[2]-=(unsigned int)(roll_input*gains_Roll[2]);
   enginesX[3]+=(unsigned int)(roll_input*gains_Roll[3]);
-  
-  //yaw settettings
-  
-  //enginesX[0]+=(unsigned int)(yaw_input*gains_Yaw[0]);
-  //enginesX[1]-=(unsigned int)(yaw_input*gains_Yaw[1]);
-  //enginesX[2]+=(unsigned int)(yaw_input*gains_Yaw[2]);
-  //enginesX[3]-=(unsigned int)(yaw_input*gains_Yaw[3]);
-  
-  //speed settings
-  for(int i=0; i<4; i++)
-    enginesX[i]=(unsigned int)(speed_input*gains_Speed[i]+ENGINEMINPWM);
-    
- // for(int i=0; i<4; i++)
- //   enginesX[i]=(unsigned int)(enginesX[i]*speed_input*gains_Speed[i]);
- 
+   
   checkEnginesX();
 }
 
@@ -391,7 +402,6 @@ void generateEnginesSpeeds(double speed_input, double pitch_input, double roll_i
 void sendData ()
 {
   int value=0;
-  int altitude=20000;
   uint8_t buffer[maxPacketSize];
 
   buffer[0] = 0xFF;
