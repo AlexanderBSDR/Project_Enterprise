@@ -61,8 +61,43 @@ PID controller_X(&actual_Angles[0], &controller_Angles[0], &set_Angles[0], pid_R
 PID controller_Y(&actual_Angles[1], &controller_Angles[1], &set_Angles[1], pid_Pitch_Settings[0], pid_Pitch_Settings[1], pid_Pitch_Settings[2], DIRECT);
 PID controller_Z(&actual_Angles[2], &controller_Angles[2], &set_Angles[2], pid_Yaw_Settings[0], pid_Yaw_Settings[1], pid_Yaw_Settings[2], DIRECT);
 
-
 void setup() {
+  initSensorsStick();
+
+  Serial.begin(9600);
+  Serial.write("Enterprise is at your commands!\n");  
+}
+
+void loop() {
+  
+  //#1 - get current parameters (actual_Angles)
+/*  getAngles(actual_Angles);
+  
+  Serial.print("ActualAngles x/y/z:");  
+  Serial.print(actual_Angles[0], 2);
+  Serial.print("/");
+  Serial.print(actual_Angles[1], 2);
+  Serial.print("/");
+  Serial.print(actual_Angles[2], 2);
+  Serial.println();*/
+  
+  double mag_coords[3];
+  read_HMC5883L(mag_coords);
+  
+  Serial.print("Mag_coordss x/y/z:");  
+  Serial.print(mag_coords[0], 2);
+  Serial.print("/");
+  Serial.print(mag_coords[1], 2);
+  Serial.print("/");
+  Serial.print(mag_coords[2], 2);
+  Serial.println();
+  
+  //double angle= atan2((double)mag_coords[1],(double)mag_coords[0]) * (180 / 3.14159265) + 180;
+  //Serial.print("Calculated angles:");
+  //Serial.println(angle,2);
+}
+
+/*void setup() {
   #if USE_EEPROM==1
   initialize_Enterprise_EEPROM();
   #endif
@@ -99,9 +134,9 @@ void setup() {
   Serial.begin(115200);
   Serial.write("Enterprise is at your commands!\n");
   
-}
+}*/
 
-void loop() {
+/*void loop() {
   
   //digitalWrite(LED_PIN, HIGH);
   #if CALC_EXECUTION_TIME==1
@@ -500,4 +535,4 @@ void printVibrations()
   Serial.print("/");
   Serial.print(abs(acc_vector[2]), 2);
   Serial.println();
-}
+}*/

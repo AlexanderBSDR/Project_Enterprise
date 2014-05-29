@@ -8,6 +8,8 @@
 #define ADXL345_DATABYTES (6) 
 #define MAX_SENSORS_DATABYTES 8 
 #define ADXL345_CALIBRATION_SAMPLE 100
+#define HMC5883L_CALIBRATION_SAMPLE 100
+
 
 #define ADXL345_OFFSET_X -131
 #define ADXL345_OFFSET_Y 28
@@ -29,6 +31,10 @@
 #define ACC_CONV 0.0039
 #define GYRO_CONV 1/14.375
 
+#define HMC5883L_DEVICE 0x1E
+#define HMC5883L_DATA_REGISTER 0x03
+#define HMC5883L_DATABYTES 6
+
 extern double estimated_angle_x;
 extern double estimated_angle_y;
 
@@ -43,8 +49,11 @@ void read_ITG3205(double *coords);
 void init_ITG3200();
 
 void read_ADXL345(double *coords);
+void read_HMC5883L(double *coords);
+
 
 void init_ADXL345(int c);
+void init_HMC5883L();
 
 void writeTo(int device, byte address, byte val);
 
