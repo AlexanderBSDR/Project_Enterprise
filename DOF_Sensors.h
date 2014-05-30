@@ -53,7 +53,7 @@ void read_HMC5883L(double *coords);
 
 
 void init_ADXL345(int c);
-void init_HMC5883L();
+void init_HMC5883L(int c);
 
 void writeTo(int device, byte address, byte val);
 
