@@ -45,7 +45,7 @@ unsigned int timerDataUpdate=100;
 //[0xFF][0x20]//[2][2][2][2]-engines//[2][2][2]-accell//[2][2][2]-gyro//[2][2][2]-compass//[2]-battery//[2]-height
 //2+8+6+6+6+2+2=32
 
-double actual_Angles[3];
+double actual_Angles[5];
 double set_Angles[3];
 double controller_Angles[3];
 double set_Speed;
@@ -67,7 +67,6 @@ void setup() {
   Serial.begin(9600);
   Serial.write("Enterprise is at your commands!\n");  
 }
-
 void loop() {
   
   //#1 - get current parameters (actual_Angles)
@@ -81,20 +80,25 @@ void loop() {
   Serial.print(actual_Angles[2], 2);
   Serial.println();*/
   
-  double mag_coords[3];
-  read_HMC5883L(mag_coords);
+  getAngles(actual_Angles);
   
-  Serial.print("Mag_coordss x/y/z:");  
+ 
+//  delay(250);
+  //if(angle1==0) angle1=atan2((double)mag_coords[0],(double)mag_coords[1]) * (180 / 3.14159265) + 180;
+
+  
+  Serial.print("Gyro angle: ");
+  Serial.print(actual_Angles[2],2);
+  Serial.print("///Mag_angle: ");
+  Serial.print(actual_Angles[3],2);
+  Serial.print("///Est_angle: ");
+  Serial.println(actual_Angles[4],2);
+ /* Serial.print("------>Mag_coords x/y/z:");  
   Serial.print(mag_coords[0], 2);
   Serial.print("/");
   Serial.print(mag_coords[1], 2);
   Serial.print("/");
-  Serial.print(mag_coords[2], 2);
-  Serial.println();
-  
-  //double angle= atan2((double)mag_coords[1],(double)mag_coords[0]) * (180 / 3.14159265) + 180;
-  //Serial.print("Calculated angles:");
-  //Serial.println(angle,2);
+  Serial.println(mag_coords[2], 2);*/
 }
 
 /*void setup() {

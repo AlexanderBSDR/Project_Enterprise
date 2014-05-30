@@ -27,7 +27,7 @@ int ACC_LPF_VALUE=4;
 
 double estimated_angle_x=0;
 double estimated_angle_y=0;
-
+double estimated_angle_z=0;
 
 //byte buff_sensors[MAX_SENSORS_DATABYTES];
 
@@ -50,13 +50,16 @@ void initSensorsStick()
   cbi (PORTC, 5);
   TWBR = ((F_CPU / 400000L) - 16)/2;
   Wire.begin();
-  Serial.begin(115200);
+//  Serial.begin(115200);
   
   init_ADXL345(1); //calibration on each start-up
   init_ITG3200();
   init_HMC5883L();
   lastTime=millis();
 }
+
+  double angle1=0;
+
 
 void getAngles(double *Angles)
 {
@@ -80,9 +83,27 @@ void getAngles(double *Angles)
   estimated_angle_x=gyro_weight*(estimated_angle_x+gyro_rate_vector[0]*(double)interval/1000.0f)+(1-gyro_weight)*(atan2(acc_vector[0], acc_vector[2])/PI*180);
   estimated_angle_y=gyro_weight*(estimated_angle_y+gyro_rate_vector[1]*(double)interval/1000.0f)+(1-gyro_weight)*(atan2(acc_vector[1], acc_vector[2])/PI*180);
   
+    double angle= atan2((double)mag_vector[0],(double)mag_vector[1]);
+    if(angle < 0)
+    angle += 2*PI; 
+    float headingDegrees = angle * 180/M_PI;
+     if (headingDegrees >= 1 && headingDegrees < 240) 
+  {
+    headingDegrees = map(headingDegrees,0,239,0,179);
+  }
+  else if (headingDegrees >= 240)
+  {
+    headingDegrees =  map(headingDegrees,240,360,180,360);
+  }
+  if (angle1==0) angle1=headingDegrees;
+  double gyro_weight2=0.5;
+  estimated_angle_z=gyro_weight2*(estimated_angle_z+gyro_rate_vector[2]*(double)interval/1000.0f)+(1-gyro_weight2)*(headingDegrees-angle1);
+
   Angles[1]=estimated_angle_x;
   Angles[0]=estimated_angle_y;
   Angles[2]=gyro_angles[2];
+  Angles[3]=headingDegrees-angle1;
+  Angles[4]=estimated_angle_z;
  
 }
 
@@ -145,41 +166,29 @@ void read_HMC5883L(double *coords)
 {
   readFrom(HMC5883L_DEVICE, HMC5883L_DATA_REGISTER, HMC5883L_DATABYTES, buff_sensors);
   
-  coords[0]=(float)(((buff_sensors[1]) << 8) | buff_sensors[0]);
-  coords[1]=(float)(((buff_sensors[3]) << 8) | buff_sensors[2]);
-  coords[2]=(float)(((buff_sensors[5]) << 8) | buff_sensors[4]);
-  
-  #define MAG_CALIBRATION 1
-  
-  if(MAG_CALIBRATION)
-  {
-    coords[0]-=mag_offset_x;
-    coords[1]-=mag_offset_y;
-    coords[2]-=mag_offset_z;
-  }
-
+  coords[0]=(float)(((buff_sensors[0]) << 8) | buff_sensors[1])*1.3-mag_offset_x;
+  coords[2]=(float)(((buff_sensors[2]) << 8) | buff_sensors[3])*1.3-mag_offset_z;
+  coords[1]=(float)(((buff_sensors[4]) << 8) | buff_sensors[5])*1.3-mag_offset_y;
 }
 
 void init_HMC5883L()
 { 
   delay(10); //// added
-  //writeTo(HMC5883L_DEVICE, 0x00, 0x18); to increase HZ clock
+  writeTo(HMC5883L_DEVICE, 0x00, 0x70); //to increase HZ clock
+  writeTo(HMC5883L_DEVICE, 0x01, 0x20); //to increase HZ clock
   writeTo(HMC5883L_DEVICE, 0x02, 0x00);
   
-  if(MAG_CALIBRATION)
-  {  
-      for (int i=0; i<HMC5883L_CALIBRATION_SAMPLE; i++)
-      {
-        readFrom(HMC5883L_DEVICE, HMC5883L_DATA_REGISTER, HMC5883L_DATABYTES, buff_sensors);
+/*  for (int i=0; i<HMC5883L_CALIBRATION_SAMPLE; i++)
+  {
+    readFrom(HMC5883L_DEVICE, HMC5883L_DATA_REGISTER, HMC5883L_DATABYTES, buff_sensors);
     
-        mag_offset_x+=(((int)buff_sensors[1]) << 8) | buff_sensors[0];
-        mag_offset_y+=(((int)buff_sensors[3]) << 8) | buff_sensors[2];
-        mag_offset_z+=(((int)buff_sensors[5]) << 8) | buff_sensors[4];
-      }
-      mag_offset_x/=HMC5883L_CALIBRATION_SAMPLE;
-      mag_offset_y/=HMC5883L_CALIBRATION_SAMPLE;
-      mag_offset_z/=HMC5883L_CALIBRATION_SAMPLE;
-  }
+      mag_offset_x+=(float)(((buff_sensors[0]) << 8) | buff_sensors[1])*1.3;
+      mag_offset_z+=(float)(((buff_sensors[2]) << 8) | buff_sensors[3])*1.3;
+      mag_offset_y+=(float)(((buff_sensors[4]) << 8) | buff_sensors[5])*1.3;
+    }
+    mag_offset_x/=HMC5883L_CALIBRATION_SAMPLE;
+    mag_offset_y/=HMC5883L_CALIBRATION_SAMPLE;
+    mag_offset_z/=HMC5883L_CALIBRATION_SAMPLE;*/
 }
 
 void init_ADXL345(int c)
