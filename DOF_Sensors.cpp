@@ -1,4 +1,4 @@
-#include "DOF_Sensors.h"
+/*#include "DOF_Sensors.h"
 
 byte buff_sensors[MAX_SENSORS_DATABYTES];
 int gyro_offset_x=0;
@@ -15,9 +15,9 @@ double gyro_angles[3];
 double acc_vector[3];
 double mag_vector[3];
 
-double mag_coords_gainError[3];
-double mag_coords_offsetError[3];
-double compass_gain=0.92;
+double mag_coords_gainError[3]={0.94,0.93,0.86};
+double mag_coords_offsetError[3]={-54,200,247};
+double compass_gain=1.22;
 
 
 long mag_offset_x=0;
@@ -59,13 +59,13 @@ void initSensorsStick()
   
   init_ADXL345(1); //calibration on each start-up
   init_ITG3200();
-  init_HMC5883L(1);
+  init_HMC5883L(0);
   lastTime=millis();
 }
 
   double angle1=0;
 
-
+double angle_old=0;
 void getAngles(double *Angles)
 {
   double gyro_rate_vector[3];
@@ -87,6 +87,7 @@ void getAngles(double *Angles)
   //complementary filter
   estimated_angle_x=gyro_weight*(estimated_angle_x+gyro_rate_vector[0]*(double)interval/1000.0f)+(1-gyro_weight)*(atan2(acc_vector[0], acc_vector[2])/PI*180);
   estimated_angle_y=gyro_weight*(estimated_angle_y+gyro_rate_vector[1]*(double)interval/1000.0f)+(1-gyro_weight)*(atan2(acc_vector[1], acc_vector[2])/PI*180);
+  double angle= -atan2((double)mag_vector[1],(double)mag_vector[0])* 180/M_PI+180;
   
   /*  double angle= atan2((double)mag_vector[0],(double)mag_vector[1]);
     if(angle < 0)
@@ -100,10 +101,13 @@ void getAngles(double *Angles)
   {
     headingDegrees =  map(headingDegrees,240,360,180,360);
   }
-  if (angle1==0) angle1=headingDegrees;
-  double gyro_weight2=0.5;
-  estimated_angle_z=gyro_weight2*(estimated_angle_z+gyro_rate_vector[2]*(double)interval/1000.0f)+(1-gyro_weight2)*(headingDegrees-angle1);
-*/
+  
+  
+  if (angle1==0) angle1=angle;
+  double gyro_weight2=0.9;
+   // if(abs(angle-angle1)>180) angle=angle_old;
+
+  estimated_angle_z=gyro_weight2*(estimated_angle_z+gyro_rate_vector[2]*(double)interval/1000.0f)+(1-gyro_weight2)*(angle-angle1);
   Angles[1]=estimated_angle_x;
   Angles[0]=estimated_angle_y;
   ////////////////////
@@ -113,9 +117,13 @@ void getAngles(double *Angles)
   //Angles[3]=headingDegrees-angle1;
   //Angles[3]=0;
   //Angles[4]=estimated_angle_z;
-  Angles[2]=mag_vector[0];
-  Angles[3]=mag_vector[1];
-  Angles[4]=mag_vector[2];
+  Angles[2]=gyro_angles[2];
+  Angles[3]=angle-angle1;
+  Angles[4]=estimated_angle_z;
+ //Angles[2]=mag_vector[0];
+ //Angles[3]=mag_vector[1];
+ //Angles[4]=mag_vector[2];
+ angle_old=angle;
  
 }
 
@@ -174,17 +182,58 @@ void read_ADXL345(double *coords)
   //coords[2] = (float)(((buff_sensors[5]) << 8) | buff_sensors[4]);
 }
 
+
+double buff_sensors_mag[3];
+double old_buff_sensors_mag[3];
+
+
 void read_HMC5883L(double *coords)
 {
+  //writeTo(HMC5883L_DEVICE, 0x02, 0b10000000); //0b00000000
+  
+ //  writeTo(HMC5883L_DEVICE, 0x00, 0b01110000); //0b000/100/00
+    //writeTo(HMC5883L_DEVICE, 0x01, 0b00100000); //gains 1.3
+ //   writeTo(HMC5883L_DEVICE, 0x02, 0b00000001); //0b00000000
   readFrom(HMC5883L_DEVICE, HMC5883L_DATA_REGISTER, HMC5883L_DATABYTES, buff_sensors);
   
+ // coords[0]=(float)(((buff_sensors[0]) << 8) | buff_sensors[1])*compass_gain*mag_coords_gainError[0]+mag_coords_offsetError[0];
+ // coords[2]=(float)(((buff_sensors[2]) << 8) | buff_sensors[3])*compass_gain*mag_coords_gainError[1]+mag_coords_offsetError[1];
+ // coords[1]=(float)(((buff_sensors[4]) << 8) | buff_sensors[5])*compass_gain*mag_coords_gainError[2]+mag_coords_offsetError[2];
+
+//  buff_sensors_mag[0]=(float)(((buff_sensors[0]) << 8) | buff_sensors[1]);
+//  buff_sensors_mag[2]=(float)(((buff_sensors[2]) << 8) | buff_sensors[3]);
+//  buff_sensors_mag[1]=(float)(((buff_sensors[4]) << 8) | buff_sensors[5]);
+
+
   coords[0]=(float)(((buff_sensors[0]) << 8) | buff_sensors[1])*compass_gain*mag_coords_gainError[0]+mag_coords_offsetError[0];
   coords[2]=(float)(((buff_sensors[2]) << 8) | buff_sensors[3])*compass_gain*mag_coords_gainError[1]+mag_coords_offsetError[1];
-  coords[1]=(float)(((buff_sensors[4]) << 8) | buff_sensors[5])*compass_gain*mag_coords_gainError[2]+mag_coords_offsetError[2];
+  coords[1]=(float)(((buff_sensors[4]) << 8) | buff_sensors[5])*compass_gain*mag_coords_gainError[2]+mag_coords_offsetError[1];
+  
+//  #define MIN_FREQ 100
+//  #define MAX_FREQ 4000
+  //if (abs(buff_sensors_mag[0])>MAX_FREQ | abs(buff_sensors_mag[0])<MIN_FREQ | abs(buff_sensors_mag[1])>MAX_FREQ | abs(buff_sensors_mag[1])<MIN_FREQ  | abs(buff_sensors_mag[2])>MAX_FREQ | abs(buff_sensors_mag[2])<MIN_FREQ )
+//  if(
+//  {
+//    buff_sensors_mag[0]=old_buff_sensors_mag[0];
+//    buff_sensors_mag[1]=old_buff_sensors_mag[1];
+//    buff_sensors_mag[2]=old_buff_sensors_mag[2];
+//  }
+//  else
+//  {
+//    coords[0]=buff_sensors_mag[0]*compass_gain*mag_coords_gainError[0]+mag_coords_offsetError[0];
+ //   coords[2]=buff_sensors_mag[2]*compass_gain*mag_coords_gainError[1]+mag_coords_offsetError[1];
+//    coords[1]=buff_sensors_mag[1]*compass_gain*mag_coords_gainError[2]+mag_coords_offsetError[2];   
+//  }
+//  old_buff_sensors_mag[0]=buff_sensors_mag[0];
+//  old_buff_sensors_mag[1]=buff_sensors_mag[1];
+//  old_buff_sensors_mag[2]=buff_sensors_mag[2];
+
 }
 
 void read_RawHMC5883L(double *coords)
 {
+ // writeTo(HMC5883L_DEVICE, 0x02, 0b10000001);
+ 
   readFrom(HMC5883L_DEVICE, HMC5883L_DATA_REGISTER, HMC5883L_DATABYTES, buff_sensors);
   
   coords[0]=(float)(((buff_sensors[0]) << 8) | buff_sensors[1]);
@@ -194,21 +243,27 @@ void read_RawHMC5883L(double *coords)
 
 void init_HMC5883L(int c)
 { 
-  delay(10); //// added
-  
-  if(c==1)
+  double compass_XY_excitation=1160, compass_Z_excitation=1080, compass_cal_x_offset=116, compass_cal_y_offset=225, compass_cal_x_gain=1.1, compass_cal_y_gain=1.12;
+  double mag_coords[3];
+  double mag_coords_scaled[3]; 
+  if(c==1 | c==3)
   {
     //calibrating compass
     writeTo(HMC5883L_DEVICE, 0x00, 0b01110001);
-  
-    double compass_XY_excitation=1160, compass_Z_excitation=1080, compass_cal_x_offset=116, compass_cal_y_offset=225, compass_cal_x_gain=1.1, compass_cal_y_gain=1.12;
-    double mag_coords[3];
-    double mag_coords_scaled[3];
+    writeTo(HMC5883L_DEVICE, 0x01, 0b01000000);  
+
 
 
     read_RawHMC5883L(mag_coords);
     while(mag_coords[0]<200 | mag_coords[1]<200 | mag_coords[2]<200)
     {
+      Serial.print("Here--- ");
+      Serial.print(mag_coords[0]);
+      Serial.print("--- ");
+      Serial.print(mag_coords[1]);
+      Serial.print("--- ");
+      Serial.println(mag_coords[2]);
+    
       read_RawHMC5883L(mag_coords);
     }
     
@@ -225,6 +280,7 @@ void init_HMC5883L(int c)
     read_RawHMC5883L(mag_coords);
     while(mag_coords[0]>-200 | mag_coords[1]>-200 | mag_coords[2]>-200)
     {
+
       read_RawHMC5883L(mag_coords);
     }
   
@@ -245,9 +301,14 @@ void init_HMC5883L(int c)
   
     Serial.println("Waiting 3 sec...");
     delay(3000);
-  
+  }
+  if(c==2 | c==3)
+  {
     ///////////////offset estimation
-  
+      writeTo(HMC5883L_DEVICE, 0x00, 0x70); //to increase HZ clock
+    writeTo(HMC5883L_DEVICE, 0x01, 0x20); //to increase HZ clock
+    writeTo(HMC5883L_DEVICE, 0x02, 0x00);
+    
     Serial.println("Please rotate the magnetometer 2 or 3 times in compelete circules within one minute");
   
     for (byte i=0; i<10; i++)
@@ -260,6 +321,13 @@ void init_HMC5883L(int c)
     while(millis()-t<=30000)
     {
       read_RawHMC5883L(mag_coords);
+      
+      Serial.print("Here2--- ");
+      Serial.print(mag_coords[0]);
+      Serial.print("--- ");
+      Serial.print(mag_coords[1]);
+      Serial.print("--- ");
+      Serial.println(mag_coords[2]);      
     
       mag_coords_scaled[0]=(float)mag_coords[0]*compass_gain*mag_coords_gainError[0];
       mag_coords_scaled[1]=(float)mag_coords[1]*compass_gain*mag_coords_gainError[1];
@@ -269,9 +337,9 @@ void init_HMC5883L(int c)
       y_max=max(y_max, mag_coords_scaled[1]);
       z_max=max(z_max, mag_coords_scaled[2]);
     
-      x_min=max(x_min, mag_coords_scaled[0]);
-      y_min=max(y_min, mag_coords_scaled[1]);
-      z_min=max(z_min, mag_coords_scaled[2]);
+      x_min=min(x_min, mag_coords_scaled[0]);
+      y_min=min(y_min, mag_coords_scaled[1]);
+      z_min=min(z_min, mag_coords_scaled[2]);
     }
   
     
@@ -290,9 +358,9 @@ void init_HMC5883L(int c)
     delay(3000);  
   }
   
-    writeTo(HMC5883L_DEVICE, 0x00, 0x70); //to increase HZ clock
-    writeTo(HMC5883L_DEVICE, 0x01, 0x20); //to increase HZ clock
-    writeTo(HMC5883L_DEVICE, 0x02, 0x00);
+    writeTo(HMC5883L_DEVICE, 0x00, 0b00010000); //0b000/100/00
+    writeTo(HMC5883L_DEVICE, 0x01, 0b00100000); //gains 1.3
+    writeTo(HMC5883L_DEVICE, 0x02, 0b10000000); //0b00000000
 }
 
 void init_ADXL345(int c)
@@ -455,4 +523,6 @@ void Mag_init() {
     magGain[1] = 1.0;
     magGain[2] = 1.0;
   }
-} //  Mag_init().*/
+} //  Mag_init().
+
+*/

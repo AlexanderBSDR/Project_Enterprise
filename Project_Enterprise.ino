@@ -2,7 +2,7 @@
 #include <Servo.h>
 #include <Wire.h>
 
-#include "DOF_Sensors.h"
+#include <MPU9150.ino>
 
 #define CALC_EXECUTION_TIME 1
 #define USE_EEPROM 0
@@ -62,10 +62,11 @@ PID controller_Y(&actual_Angles[1], &controller_Angles[1], &set_Angles[1], pid_P
 PID controller_Z(&actual_Angles[2], &controller_Angles[2], &set_Angles[2], pid_Yaw_Settings[0], pid_Yaw_Settings[1], pid_Yaw_Settings[2], DIRECT);
 
 void setup() {
-  initSensorsStick();
 
   Serial.begin(9600);
   Serial.write("Enterprise is at your commands!\n");  
+    initSensors();
+
 }
 void loop() {
   
@@ -87,18 +88,13 @@ void loop() {
   //if(angle1==0) angle1=atan2((double)mag_coords[0],(double)mag_coords[1]) * (180 / 3.14159265) + 180;
 
   
-  Serial.print("Gyro angle: ");
-  Serial.print(actual_Angles[2],2);
-  Serial.print("///Mag_angle: ");
-  Serial.print(actual_Angles[3],2);
-  Serial.print("///Est_angle: ");
-  Serial.println(actual_Angles[4],2);
- /* Serial.print("------>Mag_coords x/y/z:");  
-  Serial.print(mag_coords[0], 2);
-  Serial.print("/");
-  Serial.print(mag_coords[1], 2);
-  Serial.print("/");
-  Serial.println(mag_coords[2], 2);*/
+  Serial.print("Pitch: ");
+  Serial.print(actual_Angles[0],2);
+  Serial.print("Roll: ");
+  Serial.print(actual_Angles[1],2);
+  Serial.print("Yaw: ");
+  Serial.println(actual_Angles[2],2);
+
 }
 
 /*void setup() {
