@@ -1,47 +1,5 @@
-/* MPU9150 Basic Example Code
- by: Kris Winer
- date: March 1, 2014
- license: Beerware - Use this code however you'd like. If you
- find it useful you can buy me a beer some time.
-
- Demonstrate MPU-9150 basic functionality including parameterizing the register addresses, initializing the sensor,
- getting properly scaled accelerometer, gyroscope, and magnetometer data out. Added display functions to
- allow display to on breadboard monitor. Addition of 9 DoF sensor fusion using open source Madgwick and
- Mahony filter algorithms. Sketch runs on the 3.3 V 8 MHz Pro Mini and the Teensy 3.1.
-
- SDA and SCL should have external pull-up resistors (to 3.3V).
- 10k resistors are on the GY-9150 breakout board.
-
- Hardware setup:
- MPU9150 Breakout --------- Arduino
- 3.3V --------------------- 3.3V
- SDA ----------------------- A4
- SCL ----------------------- A5
- GND ---------------------- GND
-
- Note: The MPU9150 is an I2C sensor and uses the Arduino Wire library.
- Because the sensor is not 5V tolerant, we are using a 3.3 V 8 MHz Pro Mini or a 3.3 V Teensy 3.1.
- We have disabled the internal pull-ups used by the Wire library in the Wire.h/twi.c utility file.
- We are also using the 400 kHz fast I2C mode by setting the TWI_FREQ  to 400000L /twi.h utility file.
- */
 #include "Wire.h"
-//#include <Adafruit_GFX.h>
-//#include <Adafruit_PCD8544.h>
 
-// Using NOKIA 5110 monochrome 84 x 48 pixel display
-// pin 9 - Serial clock out (SCLK)
-// pin 8 - Serial data out (DIN)
-// pin 7 - Data/Command select (D/C)
-// pin 5 - LCD chip select (CS)
-// pin 6 - LCD reset (RST)
-//Adafruit_PCD8544 display = Adafruit_PCD8544(9, 8, 7, 5, 6);
-
-// Define registers per MPU6050, Register Map and Descriptions, Rev 4.2, 08/19/2013 6 DOF Motion sensor fusion device
-// Invensense Inc., www.invensense.com
-// See also MPU-9150 Register Map and Descriptions, Revision 4.0, RM-MPU-9150A-00, 9/12/2012 for registers not listed in
-// above document; the MPU6050 and MPU 9150 are virtually identical but the latter has an on-board magnetic sensor
-//
-//Magnetometer Registers
 #define WHO_AM_I_AK8975A 0x00 // should return 0x48
 #define INFO             0x01
 #define AK8975A_ST1      0x02  // data ready status bit 0
@@ -174,18 +132,8 @@
 #define FIFO_R_W         0x74
 #define WHO_AM_I_MPU9150 0x75 // Should return 0x68
 
-// Using the GY-521 breakout board, I set ADO to 0 by grounding through a 4k7 resistor
-// Seven-bit device address is 110100 for ADO = 0 and 110101 for ADO = 1
-#define ADO 0
-#if ADO
-#define MPU9150_ADDRESS 0x69  // Device address when ADO = 1
-#else
 #define MPU9150_ADDRESS 0x68  // Device address when ADO = 0
 #define AK8975A_ADDRESS 0x0C //  Address of magnetometer
-#endif
-
-#define AHRS  true          // set to false for basic data read
-#define SerialDebug true  // set to true to print serial output for debugging
 
 // Set initial input parameters
 enum Ascale {
@@ -209,12 +157,11 @@ float aRes, gRes, mRes; // scale resolutions per LSB for the sensors
 
 // Pin definitions
 int intPin = 12;  // These can be changed, 2 and 3 are the Arduinos ext int pins
-boolean blinkOn = false;
 
 int16_t accelCount[3];  // Stores the 16-bit signed accelerometer sensor output
 int16_t gyroCount[3];   // Stores the 16-bit signed gyro sensor output
 int16_t magCount[3];    // Stores the 16-bit signed magnetometer sensor output
-float magCalibration[3] = {0, 0, 0}, magbias[3] = {0, 0, 0};  // Factory mag calibration and mag bias
+float magCalibration[3] = {0, 0, 0}, magBias[3] = {-240, +160, -400};  // Factory mag calibration and mag bias
 float gyroBias[3] = {0, 0, 0}, accelBias[3] = {0, 0, 0};      // Bias corrections for gyro and accelerometer
 int16_t tempCount;     // Stores the raw internal chip temperature counts
 float temperature;     // temperature in degrees Centigrade
@@ -253,14 +200,11 @@ float eInt[3] = {0.0f, 0.0f, 0.0f};       // vector to hold integral error for M
 void initSensors()
 {
   Wire.begin();
-  //Serial.begin(115200);
 
-  // Set up the interrupt pin, its set as active high, push-pull
   pinMode(intPin, INPUT);
   digitalWrite(intPin, LOW);
-  calibrateMPU9150(gyroBias, accelBias); // Calibrate gyro and accelerometers, load biases in bias registers
+  calibrateMPU9150(gyroBias, accelBias, 1); // Calibrate gyro and accelerometers, load biases in bias registers
   initMPU9150(); // Inititalize and configure accelerometer and gyroscope
-  // Get magnetometer calibration from AK8975A ROM
   initAK8975A(magCalibration);
 
   MagRate = 10; // set magnetometer read rate in Hz; 10 to 100 (max) Hz are reasonable values
@@ -292,15 +236,12 @@ void getAngles(double *coords)
       mRes = 10.*1229. / 4096.; // Conversion from 1229 microTesla full scale (4096) to 12.29 Gauss full scale
       // So far, magnetometer bias is calculated and subtracted here manually, should construct an algorithm to do it automatically
       // like the gyro and accelerometer biases
-      magbias[0] = -5.;   // User environmental x-axis correction in milliGauss
-      magbias[1] = -95.;  // User environmental y-axis correction in milliGauss
-      magbias[2] = -260.; // User environmental z-axis correction in milliGauss
 
       // Calculate the magnetometer values in milliGauss
       // Include factory calibration per data sheet and user environmental corrections
-      mx = (float)magCount[0] * mRes * magCalibration[0] - magbias[0]; // get actual magnetometer value, this depends on scale being set
-      my = (float)magCount[1] * mRes * magCalibration[1] - magbias[1];
-      mz = (float)magCount[2] * mRes * magCalibration[2] - magbias[2];
+      mx = (float)magCount[0] * mRes * magCalibration[0] - magBias[0]; // get actual magnetometer value, this depends on scale being set
+      my = (float)magCount[1] * mRes * magCalibration[1] - magBias[1];
+      mz = (float)magCount[2] * mRes * magCalibration[2] - magBias[2];
       mcount = 0;
     }
   }
@@ -521,7 +462,7 @@ void initMPU9150()
 
 // Function which accumulates gyro and accelerometer data after device initialization. It calculates the average
 // of the at-rest readings and then loads the resulting offsets into accelerometer and gyro bias registers.
-void calibrateMPU9150(float * dest1, float * dest2)
+void calibrateMPU9150(float * dest1, float * dest2, int magC)
 {
   uint8_t data[12]; // data array to hold accelerometer and gyro x, y, z, data
   uint16_t ii, packet_count, fifo_count;
@@ -667,36 +608,109 @@ void calibrateMPU9150(float * dest1, float * dest2)
   dest2[0] = (float)accel_bias[0] / (float)accelsensitivity;
   dest2[1] = (float)accel_bias[1] / (float)accelsensitivity;
   dest2[2] = (float)accel_bias[2] / (float)accelsensitivity;
+  
+  //calibrate magnetometer
+  
+  if(magC==1)
+  {
+    magBias[0]=0;
+    magBias[1]=0;
+    magBias[2]=0;
+    
+    float max_magOffset[3]={-15000, -15000, -15000};
+    float min_magOffset[3]={+15000, +15000, +15000};
+      
+    float mRes = 10.*1229. / 4096.;
+      
+    double t=millis();
+    
+    Serial.println("Starting magnetometer calibration for 1 minute...");
+    Serial.println("Please rotate device in all directions");
+    
+    while(millis()-t<50000)
+    {
+      
+        readMagData(magCount);
+        mx = (float)magCount[0] * mRes * magCalibration[0] - magBias[0];
+        my = (float)magCount[1] * mRes * magCalibration[1] - magBias[1];
+        mz = (float)magCount[2] * mRes * magCalibration[2] - magBias[2];
+
+        Serial.print(mx,2);
+        Serial.print("/");
+        Serial.print(my,2);
+        Serial.print("/");
+        Serial.println(mz,2);
+        
+        max_magOffset[0]=max(max_magOffset[0],mx);
+        max_magOffset[1]=max(max_magOffset[1],my);
+        max_magOffset[2]=max(max_magOffset[2],mz);
+                        
+        min_magOffset[0]=min(min_magOffset[0],mx);
+        min_magOffset[1]=min(min_magOffset[1],my);
+        min_magOffset[2]=min(min_magOffset[2],mz);
+      
+        delay(20);
+      }
+      
+        Serial.print("Max offset x/y/z: ");
+        Serial.print(max_magOffset[0],2);
+        Serial.print("/");
+        Serial.print(max_magOffset[1],2);
+        Serial.print("/");
+        Serial.println(max_magOffset[2],2);
+        
+        Serial.print("Min offset x/y/z: ");
+        Serial.print(min_magOffset[0],2);
+        Serial.print("/");
+        Serial.print(min_magOffset[1],2);
+        Serial.print("/");
+        Serial.println(min_magOffset[2],2);
+        
+        magBias[0]=((max_magOffset[0]-min_magOffset[0])/2)-max_magOffset[0];
+        magBias[1]=((max_magOffset[1]-min_magOffset[1])/2)-max_magOffset[1];
+        magBias[2]=((max_magOffset[2]-min_magOffset[2])/2)-max_magOffset[2];
+        
+        Serial.print("Mag offset x/y/z: ");
+        Serial.print(magBias[0],2);
+        Serial.print("/");
+        Serial.print(magBias[1],2);
+        Serial.print("/");
+        Serial.println(magBias[2],2);
+        
+        delay(100000);
+  }
+  
 }
 
-// Wire.h read and write protocols
+//wire functions
+
 void writeByte(uint8_t address, uint8_t subAddress, uint8_t data)
 {
-  Wire.beginTransmission(address);  // Initialize the Tx buffer
-  Wire.write(subAddress);           // Put slave register address in Tx buffer
-  Wire.write(data);                 // Put data in Tx buffer
-  Wire.endTransmission();           // Send the Tx buffer
+  Wire.beginTransmission(address);
+  Wire.write(subAddress);
+  Wire.write(data);
+  Wire.endTransmission();
 }
 
 uint8_t readByte(uint8_t address, uint8_t subAddress)
 {
-  uint8_t data; // `data` will store the register data
-  Wire.beginTransmission(address);         // Initialize the Tx buffer
-  Wire.write(subAddress);	                 // Put slave register address in Tx buffer
-  Wire.endTransmission(false);             // Send the Tx buffer, but send a restart to keep connection alive
-  Wire.requestFrom(address, (uint8_t) 1);  // Read one byte from slave register address
-  data = Wire.read();                      // Fill Rx buffer with result
-  return data;                             // Return data read from slave register
+  uint8_t data;
+  Wire.beginTransmission(address);
+  Wire.write(subAddress);
+  Wire.endTransmission(false);
+  Wire.requestFrom(address, (uint8_t) 1);
+  data = Wire.read();
+  return data;
 }
 
 void readBytes(uint8_t address, uint8_t subAddress, uint8_t count, uint8_t * dest)
 {
-  Wire.beginTransmission(address);   // Initialize the Tx buffer
-  Wire.write(subAddress);            // Put slave register address in Tx buffer
-  Wire.endTransmission(false);       // Send the Tx buffer, but send a restart to keep connection alive
+  Wire.beginTransmission(address);
+  Wire.write(subAddress);
+  Wire.endTransmission(false);
   uint8_t i = 0;
-  Wire.requestFrom(address, count);  // Read bytes from slave register address
+  Wire.requestFrom(address, count);
   while (Wire.available()) {
     dest[i++] = Wire.read();
-  }         // Put read results in the Rx buffer
+  }
 }
