@@ -132,8 +132,13 @@
 #define FIFO_R_W         0x74
 #define WHO_AM_I_MPU9150 0x75 // Should return 0x68
 
+#define ADO 0
+#if ADO
+#define MPU9150_ADDRESS 0x69  // Device address when ADO = 1
+#else
 #define MPU9150_ADDRESS 0x68  // Device address when ADO = 0
 #define AK8975A_ADDRESS 0x0C //  Address of magnetometer
+#endif  
 
 // Set initial input parameters
 enum Ascale {
@@ -635,6 +640,7 @@ void calibrateMPU9150(float * dest1, float * dest2, int magC)
         my = (float)magCount[1] * mRes * magCalibration[1] - magBias[1];
         mz = (float)magCount[2] * mRes * magCalibration[2] - magBias[2];
 
+        Serial.print("mag: ");
         Serial.print(mx,2);
         Serial.print("/");
         Serial.print(my,2);
@@ -677,7 +683,7 @@ void calibrateMPU9150(float * dest1, float * dest2, int magC)
         Serial.print("/");
         Serial.println(magBias[2],2);
         
-        delay(100000);
+        delay(1000000);
   }
   
 }
