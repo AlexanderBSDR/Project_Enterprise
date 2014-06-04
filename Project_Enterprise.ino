@@ -55,13 +55,14 @@ unsigned long previousMillis = 0;
 
 bool isManual=false;
 
+
 Servo enginesX_obj[4];
 
 PID controller_X(&actual_Angles[0], &controller_Angles[0], &set_Angles[0], pid_Roll_Settings[0], pid_Roll_Settings[1], pid_Roll_Settings[2], DIRECT);
 PID controller_Y(&actual_Angles[1], &controller_Angles[1], &set_Angles[1], pid_Pitch_Settings[0], pid_Pitch_Settings[1], pid_Pitch_Settings[2], DIRECT);
 PID controller_Z(&actual_Angles[2], &controller_Angles[2], &set_Angles[2], pid_Yaw_Settings[0], pid_Yaw_Settings[1], pid_Yaw_Settings[2], DIRECT);
 
-void setup() {
+/*void setup() {
 
   Serial.begin(9600);
   Serial.write("Enterprise is at your commands!\n");  
@@ -71,17 +72,8 @@ void setup() {
 void loop() {
   
   //#1 - get current parameters (actual_Angles)
-/*  getAngles(actual_Angles);
-  
-  Serial.print("ActualAngles x/y/z:");  
-  Serial.print(actual_Angles[0], 2);
-  Serial.print("/");
-  Serial.print(actual_Angles[1], 2);
-  Serial.print("/");
-  Serial.print(actual_Angles[2], 2);
-  Serial.println();*/
-  
-  getAngles(actual_Angles);
+ getAngles(actual_Angles);
+ getAngles(actual_Angles);
   
  
 //  delay(250);
@@ -95,13 +87,13 @@ void loop() {
   Serial.print("Yaw: ");
   Serial.println(actual_Angles[2],2);
 
-}
+}*/
 
-/*void setup() {
+void setup() {
   #if USE_EEPROM==1
   initialize_Enterprise_EEPROM();
   #endif
-  initSensorsStick();
+  initSensors();
 
   enginesX_obj[0].attach(ENGINE_ONE_PIN);
   enginesX_obj[0].writeMicroseconds(ENGINESTARTUPPWM);
@@ -134,9 +126,9 @@ void loop() {
   Serial.begin(115200);
   Serial.write("Enterprise is at your commands!\n");
   
-}*/
+}
 
-/*void loop() {
+void loop() {
   
   //digitalWrite(LED_PIN, HIGH);
   #if CALC_EXECUTION_TIME==1
@@ -146,6 +138,7 @@ void loop() {
   //#1 - get current parameters (actual_Angles)
   getAngles(actual_Angles);
   
+  
   //#2 - calculate if we need to make any adjustments (controller_Angles)
   controller_Y.Compute(); //pitch
   controller_X.Compute(); // roll
@@ -154,7 +147,7 @@ void loop() {
   //#3 - do adjustments to engines
   //if(set_Angles[4]>0)
   if (isManual==false)
-    generateEnginesSpeeds(set_Speed, controller_Angles[1], controller_Angles[0], controller_Angles[2]);
+    generateEnginesSpeeds(set_Speed, controller_Angles[0], controller_Angles[1], controller_Angles[2]);
   updateEngineParameters();
   
   //#4 - check if we have new commands (set_Angles) 
@@ -362,9 +355,6 @@ void loop() {
             controller_Y.SetTunings(pid_Pitch_Settings[0], pid_Pitch_Settings[1], pid_Pitch_Settings[2]);
             controller_X.SetTunings(pid_Roll_Settings[0], pid_Roll_Settings[1], pid_Roll_Settings[2]);
  
-            #if DEBUG_MODE==1         
-            printVibrations();  //<-----------
-            #endif
             break;
           };
 
@@ -412,23 +402,23 @@ void generateEnginesSpeeds(double speed_input, double pitch_input, double roll_i
     enginesX[i]=(unsigned int)(speed_input*MAX_SPEED_STEP*gains_Speed[i]+ENGINEMINPWM);
  
   //yaw settettings 
-  enginesX[0]+=(unsigned int)(yaw_input*gains_Yaw[0]);
-  enginesX[1]-=(unsigned int)(yaw_input*gains_Yaw[1]);
-  enginesX[2]+=(unsigned int)(yaw_input*gains_Yaw[2]);
-  enginesX[3]-=(unsigned int)(yaw_input*gains_Yaw[3]);
+  enginesX[0]-=(unsigned int)(yaw_input*gains_Yaw[0]);
+  enginesX[1]+=(unsigned int)(yaw_input*gains_Yaw[1]);
+  enginesX[2]-=(unsigned int)(yaw_input*gains_Yaw[2]);
+  enginesX[3]+=(unsigned int)(yaw_input*gains_Yaw[3]);
   
   
   //pitch settings
-  enginesX[0]+=(unsigned int)(pitch_input*gains_Pitch[0]);
-  enginesX[1]+=(unsigned int)(pitch_input*gains_Pitch[1]);
-  enginesX[2]-=(unsigned int)(pitch_input*gains_Pitch[2]);
-  enginesX[3]-=(unsigned int)(pitch_input*gains_Pitch[3]);
+  enginesX[0]-=(unsigned int)(pitch_input*gains_Pitch[0]);
+  enginesX[1]-=(unsigned int)(pitch_input*gains_Pitch[1]);
+  enginesX[2]+=(unsigned int)(pitch_input*gains_Pitch[2]);
+  enginesX[3]+=(unsigned int)(pitch_input*gains_Pitch[3]);
   
   //roll settings
-  enginesX[0]-=(unsigned int)(roll_input*gains_Roll[0]);
-  enginesX[1]+=(unsigned int)(roll_input*gains_Roll[1]);
-  enginesX[2]-=(unsigned int)(roll_input*gains_Roll[2]);
-  enginesX[3]+=(unsigned int)(roll_input*gains_Roll[3]);
+  enginesX[0]+=(unsigned int)(roll_input*gains_Roll[0]);
+  enginesX[1]-=(unsigned int)(roll_input*gains_Roll[1]);
+  enginesX[2]+=(unsigned int)(roll_input*gains_Roll[2]);
+  enginesX[3]-=(unsigned int)(roll_input*gains_Roll[3]);
    
   checkEnginesX();
 }
@@ -525,14 +515,3 @@ void updateEngineParameters()
   for(int i=0; i<4; i++)
    enginesX_obj[i].writeMicroseconds(enginesX[i]);
 }
-
-void printVibrations()
-{
-  Serial.print("Vibrations x/y/z:");  
-  Serial.print(abs(acc_vector[0]), 2);
-  Serial.print("/");
-  Serial.print(abs(acc_vector[1]), 2);
-  Serial.print("/");
-  Serial.print(abs(acc_vector[2]), 2);
-  Serial.println();
-}*/

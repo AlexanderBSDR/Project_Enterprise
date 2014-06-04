@@ -166,7 +166,7 @@ int intPin = 12;  // These can be changed, 2 and 3 are the Arduinos ext int pins
 int16_t accelCount[3];  // Stores the 16-bit signed accelerometer sensor output
 int16_t gyroCount[3];   // Stores the 16-bit signed gyro sensor output
 int16_t magCount[3];    // Stores the 16-bit signed magnetometer sensor output
-float magCalibration[3] = {0, 0, 0}, magBias[3] = {-240, +160, -400};  // Factory mag calibration and mag bias
+float magCalibration[3] = {0, 0, 0}, magBias[3] = {-266.15, +212.64, -388.61};  // Factory mag calibration and mag bias
 float gyroBias[3] = {0, 0, 0}, accelBias[3] = {0, 0, 0};      // Bias corrections for gyro and accelerometer
 int16_t tempCount;     // Stores the raw internal chip temperature counts
 float temperature;     // temperature in degrees Centigrade
@@ -208,12 +208,16 @@ void initSensors()
 
   pinMode(intPin, INPUT);
   digitalWrite(intPin, LOW);
-  calibrateMPU9150(gyroBias, accelBias, 1); // Calibrate gyro and accelerometers, load biases in bias registers
+  calibrateMPU9150(gyroBias, accelBias); // Calibrate gyro and accelerometers, load biases in bias registers
   initMPU9150(); // Inititalize and configure accelerometer and gyroscope
   initAK8975A(magCalibration);
+//  calibrateAK8975A();
 
-  MagRate = 10; // set magnetometer read rate in Hz; 10 to 100 (max) Hz are reasonable values
+  MagRate = 100; // set magnetometer read rate in Hz; 10 to 100 (max) Hz are reasonable values
 }
+
+int counter_mag=0;
+double angle1=0;
 
 void getAngles(double *coords)
 {
@@ -283,7 +287,10 @@ void getAngles(double *coords)
       coords[2] *= 180.0f / PI;
       coords[2] += 7.1; // Declination at Danville, California is 13 degrees 48 minutes and 47 seconds on 2014-04-04
       coords[1] *= 180.0f / PI;
-
+ 
+  if((angle1==0) & (counter_mag>=60)) angle1=actual_Angles[2];
+  counter_mag++;
+  coords[2]-=angle1;
 
       // With these settings the filter is updating at a ~145 Hz rate using the Madgwick scheme and
       // >200 Hz using the Mahony scheme even though the display refreshes at only 2 Hz.
@@ -378,6 +385,13 @@ void readMagData(int16_t * destination)
     destination[0] = ((int16_t)rawData[1] << 8) | rawData[0] ;  // Turn the MSB and LSB into a signed 16-bit value
     destination[1] = ((int16_t)rawData[3] << 8) | rawData[2] ;
     destination[2] = ((int16_t)rawData[5] << 8) | rawData[4] ;
+    
+ /*   Serial.print(destination[0]);
+    Serial.print("/");
+    Serial.print(destination[1]);
+    Serial.print("/");
+    Serial.println(destination[2]);
+    //Serial.print("");*/
   }
 }
 
@@ -467,7 +481,7 @@ void initMPU9150()
 
 // Function which accumulates gyro and accelerometer data after device initialization. It calculates the average
 // of the at-rest readings and then loads the resulting offsets into accelerometer and gyro bias registers.
-void calibrateMPU9150(float * dest1, float * dest2, int magC)
+void calibrateMPU9150(float * dest1, float * dest2)
 {
   uint8_t data[12]; // data array to hold accelerometer and gyro x, y, z, data
   uint16_t ii, packet_count, fifo_count;
@@ -613,11 +627,12 @@ void calibrateMPU9150(float * dest1, float * dest2, int magC)
   dest2[0] = (float)accel_bias[0] / (float)accelsensitivity;
   dest2[1] = (float)accel_bias[1] / (float)accelsensitivity;
   dest2[2] = (float)accel_bias[2] / (float)accelsensitivity;
+}
+
+void calibrateAK8975A()
+{
+    //calibrate magnetometer
   
-  //calibrate magnetometer
-  
-  if(magC==1)
-  {
     magBias[0]=0;
     magBias[1]=0;
     magBias[2]=0;
@@ -684,8 +699,6 @@ void calibrateMPU9150(float * dest1, float * dest2, int magC)
         Serial.println(magBias[2],2);
         
         delay(1000000);
-  }
-  
 }
 
 //wire functions
