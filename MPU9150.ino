@@ -138,7 +138,7 @@
 #else
 #define MPU9150_ADDRESS 0x68  // Device address when ADO = 0
 #define AK8975A_ADDRESS 0x0C //  Address of magnetometer
-#endif  
+#endif
 
 // Set initial input parameters
 enum Ascale {
@@ -166,7 +166,7 @@ int intPin = 12;  // These can be changed, 2 and 3 are the Arduinos ext int pins
 int16_t accelCount[3];  // Stores the 16-bit signed accelerometer sensor output
 int16_t gyroCount[3];   // Stores the 16-bit signed gyro sensor output
 int16_t magCount[3];    // Stores the 16-bit signed magnetometer sensor output
-float magCalibration[3] = {0, 0, 0}, magBias[3] = {-266.15, +212.64, -388.61};  // Factory mag calibration and mag bias
+float magCalibration[3] = {0, 0, 0}, magBias[3] = { -266.15, +212.64, -388.61}; // Factory mag calibration and mag bias
 float gyroBias[3] = {0, 0, 0}, accelBias[3] = {0, 0, 0};      // Bias corrections for gyro and accelerometer
 int16_t tempCount;     // Stores the raw internal chip temperature counts
 float temperature;     // temperature in degrees Centigrade
@@ -211,13 +211,13 @@ void initSensors()
   calibrateMPU9150(gyroBias, accelBias); // Calibrate gyro and accelerometers, load biases in bias registers
   initMPU9150(); // Inititalize and configure accelerometer and gyroscope
   initAK8975A(magCalibration);
-//  calibrateAK8975A();
+  //  calibrateAK8975A();
 
   MagRate = 100; // set magnetometer read rate in Hz; 10 to 100 (max) Hz are reasonable values
 }
 
-int counter_mag=0;
-double angle1=0;
+int counter_mag = 0;
+double angle1 = 0;
 
 void getAngles(double *coords)
 {
@@ -270,40 +270,40 @@ void getAngles(double *coords)
   // MahonyQuaternionUpdate(ax, ay, az, gx*PI/180.0f, gy*PI/180.0f, gz*PI/180.0f, my, mx, mz);
 
 
-  
-      // Define output variables from updated quaternion---these are Tait-Bryan angles, commonly used in aircraft orientation.
-      // In this coordinate system, the positive z-axis is down toward Earth.
-      // Yaw is the angle between Sensor x-axis and Earth magnetic North (or true North if corrected for local declination, looking down on the sensor positive yaw is counterclockwise.
-      // Pitch is angle between sensor x-axis and Earth ground plane, toward the Earth is positive, up toward the sky is negative.
-      // Roll is angle between sensor y-axis and Earth ground plane, y-axis up is positive roll.
-      // These arise from the definition of the homogeneous rotation matrix constructed from quaternions.
-      // Tait-Bryan angles as well as Euler angles are non-commutative; that is, the get the correct orientation the rotations must be
-      // applied in the correct order which for this configuration is yaw, pitch, and then roll.
-      // For more see http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles which has additional links.
-      coords[2] = atan2(2.0f * (q[1] * q[2] + q[0] * q[3]), q[0] * q[0] + q[1] * q[1] - q[2] * q[2] - q[3] * q[3]);
-      coords[0] = -asin(2.0f * (q[1] * q[3] - q[0] * q[2]));
-      coords[1] = atan2(2.0f * (q[0] * q[1] + q[2] * q[3]), q[0] * q[0] - q[1] * q[1] - q[2] * q[2] + q[3] * q[3]);
-      coords[0] *= 180.0f / PI;
-      coords[2] *= 180.0f / PI;
-      coords[2] += 7.1; // Declination at Danville, California is 13 degrees 48 minutes and 47 seconds on 2014-04-04
-      coords[1] *= 180.0f / PI;
- 
-  if((angle1==0) & (counter_mag>=60)) angle1=actual_Angles[2];
-  counter_mag++;
-  coords[2]-=angle1;
 
-      // With these settings the filter is updating at a ~145 Hz rate using the Madgwick scheme and
-      // >200 Hz using the Mahony scheme even though the display refreshes at only 2 Hz.
-      // The filter update rate is determined mostly by the mathematical steps in the respective algorithms,
-      // the processor speed (8 MHz for the 3.3V Pro Mini), and the magnetometer ODR:
-      // an ODR of 10 Hz for the magnetometer produce the above rates, maximum magnetometer ODR of 100 Hz produces
-      // filter update rates of 36 - 145 and ~38 Hz for the Madgwick and Mahony schemes, respectively.
-      // This is presumably because the magnetometer read takes longer than the gyro or accelerometer reads.
-      // This filter update rate should be fast enough to maintain accurate platform orientation for
-      // stabilization control of a fast-moving robot or quadcopter. Compare to the update rate of 200 Hz
-      // produced by the on-board Digital Motion Processor of Invensense's MPU6050 6 DoF and MPU9150 9DoF sensors.
-      // The 3.3 V 8 MHz Pro Mini is doing pretty well!
-      // Display 0.5-second average filter rate
+  // Define output variables from updated quaternion---these are Tait-Bryan angles, commonly used in aircraft orientation.
+  // In this coordinate system, the positive z-axis is down toward Earth.
+  // Yaw is the angle between Sensor x-axis and Earth magnetic North (or true North if corrected for local declination, looking down on the sensor positive yaw is counterclockwise.
+  // Pitch is angle between sensor x-axis and Earth ground plane, toward the Earth is positive, up toward the sky is negative.
+  // Roll is angle between sensor y-axis and Earth ground plane, y-axis up is positive roll.
+  // These arise from the definition of the homogeneous rotation matrix constructed from quaternions.
+  // Tait-Bryan angles as well as Euler angles are non-commutative; that is, the get the correct orientation the rotations must be
+  // applied in the correct order which for this configuration is yaw, pitch, and then roll.
+  // For more see http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles which has additional links.
+  coords[2] = atan2(2.0f * (q[1] * q[2] + q[0] * q[3]), q[0] * q[0] + q[1] * q[1] - q[2] * q[2] - q[3] * q[3]);
+  coords[0] = -asin(2.0f * (q[1] * q[3] - q[0] * q[2]));
+  coords[1] = atan2(2.0f * (q[0] * q[1] + q[2] * q[3]), q[0] * q[0] - q[1] * q[1] - q[2] * q[2] + q[3] * q[3]);
+  coords[0] *= 180.0f / PI;
+  coords[2] *= 180.0f / PI;
+  coords[2] += 7.1; // Declination at Danville, California is 13 degrees 48 minutes and 47 seconds on 2014-04-04
+  coords[1] *= 180.0f / PI;
+
+  if ((angle1 == 0) & (counter_mag >= 60)) angle1 = actual_Angles[2];
+  counter_mag++;
+  coords[2] -= angle1;
+
+  // With these settings the filter is updating at a ~145 Hz rate using the Madgwick scheme and
+  // >200 Hz using the Mahony scheme even though the display refreshes at only 2 Hz.
+  // The filter update rate is determined mostly by the mathematical steps in the respective algorithms,
+  // the processor speed (8 MHz for the 3.3V Pro Mini), and the magnetometer ODR:
+  // an ODR of 10 Hz for the magnetometer produce the above rates, maximum magnetometer ODR of 100 Hz produces
+  // filter update rates of 36 - 145 and ~38 Hz for the Madgwick and Mahony schemes, respectively.
+  // This is presumably because the magnetometer read takes longer than the gyro or accelerometer reads.
+  // This filter update rate should be fast enough to maintain accurate platform orientation for
+  // stabilization control of a fast-moving robot or quadcopter. Compare to the update rate of 200 Hz
+  // produced by the on-board Digital Motion Processor of Invensense's MPU6050 6 DoF and MPU9150 9DoF sensors.
+  // The 3.3 V 8 MHz Pro Mini is doing pretty well!
+  // Display 0.5-second average filter rate
 
 }
 
@@ -356,42 +356,34 @@ void getAres() {
 
 void readAccelData(int16_t * destination)
 {
-  uint8_t rawData[6];  // x/y/z accel register data stored here
-  readBytes(MPU9150_ADDRESS, ACCEL_XOUT_H, 6, &rawData[0]);  // Read the six raw data registers into data array
-  destination[0] = ((int16_t)rawData[0] << 8) | rawData[1] ;  // Turn the MSB and LSB into a signed 16-bit value
-  destination[1] = ((int16_t)rawData[2] << 8) | rawData[3] ;
-  destination[2] = ((int16_t)rawData[4] << 8) | rawData[5] ;
+  uint8_t rawData[6];
+  readBytes(MPU9150_ADDRESS, ACCEL_XOUT_H, 6, &rawData[0]);
+  destination[0] = ((int16_t)rawData[0] << 8) | rawData[1];
+  destination[1] = ((int16_t)rawData[2] << 8) | rawData[3];
+  destination[2] = ((int16_t)rawData[4] << 8) | rawData[5];
 }
 
 
 void readGyroData(int16_t * destination)
 {
-  uint8_t rawData[6];  // x/y/z gyro register data stored here
-  readBytes(MPU9150_ADDRESS, GYRO_XOUT_H, 6, &rawData[0]);  // Read the six raw data registers sequentially into data array
-  destination[0] = ((int16_t)rawData[0] << 8) | rawData[1] ;  // Turn the MSB and LSB into a signed 16-bit value
-  destination[1] = ((int16_t)rawData[2] << 8) | rawData[3] ;
-  destination[2] = ((int16_t)rawData[4] << 8) | rawData[5] ;
+  uint8_t rawData[6];
+  readBytes(MPU9150_ADDRESS, GYRO_XOUT_H, 6, &rawData[0]);
+  destination[0] = ((int16_t)rawData[0] << 8) | rawData[1];
+  destination[1] = ((int16_t)rawData[2] << 8) | rawData[3];
+  destination[2] = ((int16_t)rawData[4] << 8) | rawData[5];
 }
 
 void readMagData(int16_t * destination)
 {
-  uint8_t rawData[6];  // x/y/z gyro register data stored here
-  writeByte(AK8975A_ADDRESS, AK8975A_CNTL, 0x01); // toggle enable data read from magnetometer, no continuous read mode!
+  uint8_t rawData[6];
+  writeByte(AK8975A_ADDRESS, AK8975A_CNTL, 0x01);
   delay(10);
-  // Only accept a new magnetometer data read if the data ready bit is set and
-  // if there are no sensor overflow or data read errors
-  if (readByte(AK8975A_ADDRESS, AK8975A_ST1) & 0x01) { // wait for magnetometer data ready bit to be set
-    readBytes(AK8975A_ADDRESS, AK8975A_XOUT_L, 6, &rawData[0]);  // Read the six raw data registers sequentially into data array
-    destination[0] = ((int16_t)rawData[1] << 8) | rawData[0] ;  // Turn the MSB and LSB into a signed 16-bit value
-    destination[1] = ((int16_t)rawData[3] << 8) | rawData[2] ;
-    destination[2] = ((int16_t)rawData[5] << 8) | rawData[4] ;
-    
- /*   Serial.print(destination[0]);
-    Serial.print("/");
-    Serial.print(destination[1]);
-    Serial.print("/");
-    Serial.println(destination[2]);
-    //Serial.print("");*/
+
+  if (readByte(AK8975A_ADDRESS, AK8975A_ST1) & 0x01) {
+    readBytes(AK8975A_ADDRESS, AK8975A_XOUT_L, 6, &rawData[0]);
+    destination[0] = ((int16_t)rawData[1] << 8) | rawData[0];
+    destination[1] = ((int16_t)rawData[3] << 8) | rawData[2];
+    destination[2] = ((int16_t)rawData[5] << 8) | rawData[4];
   }
 }
 
@@ -419,12 +411,10 @@ int16_t readTempData()
 
 void initMPU9150()
 {
-  // wake up device
-  writeByte(MPU9150_ADDRESS, PWR_MGMT_1, 0x00); // Clear sleep mode bit (6), enable all sensors
-  delay(100); // Delay 100 ms for PLL to get established on x-axis gyro; should check for PLL ready interrupt
-
-  // get stable time source
-  writeByte(MPU9150_ADDRESS, PWR_MGMT_1, 0x01);  // Set clock source to be PLL with x-axis gyroscope reference, bits 2:0 = 001
+  writeByte(MPU9150_ADDRESS, PWR_MGMT_1, 0x00);
+  delay(100);
+  
+  writeByte(MPU9150_ADDRESS, PWR_MGMT_1, 0x01);
   delay(200);
 
   // Configure Gyro and Accelerometer
@@ -449,38 +439,10 @@ void initMPU9150()
   writeByte(MPU9150_ADDRESS, ACCEL_CONFIG, c & ~0x18); // Clear AFS bits [4:3]
   writeByte(MPU9150_ADDRESS, ACCEL_CONFIG, c | Ascale << 3); // Set full scale range for the accelerometer
 
-  /*
-  // Configure Magnetometer for FIFO
-  // Initialize AK8975A for write
-    writeRegister(I2C_SLV1_ADDR, 0x0C);  // Write address of AK8975A
-    writeRegister(I2C_SLV1_REG, 0x0A);   // Register from within the AK8975 to which to write
-    writeRegister(I2C_SLV1_DO, 0x01);    // Register that holds output data written into Slave 1 when in write mode
-    writeRegister(I2C_SLV1_CTRL, 0x81);  // Enable Slave 1
-
-  // Set up auxilliary communication with AK8975A for FIFO read
-    writeRegister(I2C_SLV0_ADDR, 0x8C); // Enable and read address (0x0C) of the AK8975A
-    writeRegister(I2C_SLV0_REG, 0x03);  // Register within AK8975A from which to start data read
-    writeRegister(I2C_SLV0_CTRL, 0x86); // Read six bytes and swap bytes
-
-  // Configure FIFO
-    writeRegister(INT_ENABLE, 0x00); // Disable all interrupts
-    writeRegister(FIFO_EN, 0x00);    // Disable FIFO
-    writeRegister(USER_CTRL, 0x02);  // Reset I2C master and FIFO and DMP
-    writeRegister(USER_CTRL, 0x00);  // Disable FIFO
-    delay(100);
-  // writeRegister(FIFO_EN, 0xF9); // Enable all sensors for FIFO
-  // writeRegister(I2C_MST_DELAY_CTRL, 0x80); // Enable delay of external sensor data until all data registers have been read
-  */
-
-  // Configure Interrupts and Bypass Enable
-  // Set interrupt pin active high, push-pull, and clear on read of INT_STATUS, enable I2C_BYPASS_EN so additional chips
-  // can join the I2C bus and all can be controlled by the Arduino as master
   writeByte(MPU9150_ADDRESS, INT_PIN_CFG, 0x22);
   writeByte(MPU9150_ADDRESS, INT_ENABLE, 0x01);  // Enable data ready (bit 0) interrupt
 }
 
-// Function which accumulates gyro and accelerometer data after device initialization. It calculates the average
-// of the at-rest readings and then loads the resulting offsets into accelerometer and gyro bias registers.
 void calibrateMPU9150(float * dest1, float * dest2)
 {
   uint8_t data[12]; // data array to hold accelerometer and gyro x, y, z, data
@@ -631,74 +593,74 @@ void calibrateMPU9150(float * dest1, float * dest2)
 
 void calibrateAK8975A()
 {
-    //calibrate magnetometer
-  
-    magBias[0]=0;
-    magBias[1]=0;
-    magBias[2]=0;
-    
-    float max_magOffset[3]={-15000, -15000, -15000};
-    float min_magOffset[3]={+15000, +15000, +15000};
-      
-    float mRes = 10.*1229. / 4096.;
-      
-    double t=millis();
-    
-    Serial.println("Starting magnetometer calibration for 1 minute...");
-    Serial.println("Please rotate device in all directions");
-    
-    while(millis()-t<50000)
-    {
-      
-        readMagData(magCount);
-        mx = (float)magCount[0] * mRes * magCalibration[0] - magBias[0];
-        my = (float)magCount[1] * mRes * magCalibration[1] - magBias[1];
-        mz = (float)magCount[2] * mRes * magCalibration[2] - magBias[2];
+  //calibrate magnetometer
 
-        Serial.print("mag: ");
-        Serial.print(mx,2);
-        Serial.print("/");
-        Serial.print(my,2);
-        Serial.print("/");
-        Serial.println(mz,2);
-        
-        max_magOffset[0]=max(max_magOffset[0],mx);
-        max_magOffset[1]=max(max_magOffset[1],my);
-        max_magOffset[2]=max(max_magOffset[2],mz);
-                        
-        min_magOffset[0]=min(min_magOffset[0],mx);
-        min_magOffset[1]=min(min_magOffset[1],my);
-        min_magOffset[2]=min(min_magOffset[2],mz);
-      
-        delay(20);
-      }
-      
-        Serial.print("Max offset x/y/z: ");
-        Serial.print(max_magOffset[0],2);
-        Serial.print("/");
-        Serial.print(max_magOffset[1],2);
-        Serial.print("/");
-        Serial.println(max_magOffset[2],2);
-        
-        Serial.print("Min offset x/y/z: ");
-        Serial.print(min_magOffset[0],2);
-        Serial.print("/");
-        Serial.print(min_magOffset[1],2);
-        Serial.print("/");
-        Serial.println(min_magOffset[2],2);
-        
-        magBias[0]=((max_magOffset[0]-min_magOffset[0])/2)-max_magOffset[0];
-        magBias[1]=((max_magOffset[1]-min_magOffset[1])/2)-max_magOffset[1];
-        magBias[2]=((max_magOffset[2]-min_magOffset[2])/2)-max_magOffset[2];
-        
-        Serial.print("Mag offset x/y/z: ");
-        Serial.print(magBias[0],2);
-        Serial.print("/");
-        Serial.print(magBias[1],2);
-        Serial.print("/");
-        Serial.println(magBias[2],2);
-        
-        delay(1000000);
+  magBias[0] = 0;
+  magBias[1] = 0;
+  magBias[2] = 0;
+
+  float max_magOffset[3] = { -15000, -15000, -15000};
+  float min_magOffset[3] = { +15000, +15000, +15000};
+
+  float mRes = 10.*1229. / 4096.;
+
+  double t = millis();
+
+  Serial.println("Starting magnetometer calibration for 1 minute...");
+  Serial.println("Please rotate device in all directions");
+
+  while (millis() - t < 50000)
+  {
+
+    readMagData(magCount);
+    mx = (float)magCount[0] * mRes * magCalibration[0] - magBias[0];
+    my = (float)magCount[1] * mRes * magCalibration[1] - magBias[1];
+    mz = (float)magCount[2] * mRes * magCalibration[2] - magBias[2];
+
+    Serial.print("mag: ");
+    Serial.print(mx, 2);
+    Serial.print("/");
+    Serial.print(my, 2);
+    Serial.print("/");
+    Serial.println(mz, 2);
+
+    max_magOffset[0] = max(max_magOffset[0], mx);
+    max_magOffset[1] = max(max_magOffset[1], my);
+    max_magOffset[2] = max(max_magOffset[2], mz);
+
+    min_magOffset[0] = min(min_magOffset[0], mx);
+    min_magOffset[1] = min(min_magOffset[1], my);
+    min_magOffset[2] = min(min_magOffset[2], mz);
+
+    delay(20);
+  }
+
+  Serial.print("Max offset x/y/z: ");
+  Serial.print(max_magOffset[0], 2);
+  Serial.print("/");
+  Serial.print(max_magOffset[1], 2);
+  Serial.print("/");
+  Serial.println(max_magOffset[2], 2);
+
+  Serial.print("Min offset x/y/z: ");
+  Serial.print(min_magOffset[0], 2);
+  Serial.print("/");
+  Serial.print(min_magOffset[1], 2);
+  Serial.print("/");
+  Serial.println(min_magOffset[2], 2);
+
+  magBias[0] = ((max_magOffset[0] - min_magOffset[0]) / 2) - max_magOffset[0];
+  magBias[1] = ((max_magOffset[1] - min_magOffset[1]) / 2) - max_magOffset[1];
+  magBias[2] = ((max_magOffset[2] - min_magOffset[2]) / 2) - max_magOffset[2];
+
+  Serial.print("Mag offset x/y/z: ");
+  Serial.print(magBias[0], 2);
+  Serial.print("/");
+  Serial.print(magBias[1], 2);
+  Serial.print("/");
+  Serial.println(magBias[2], 2);
+
+  delay(1000000);
 }
 
 //wire functions

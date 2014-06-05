@@ -371,7 +371,7 @@ void loop() {
   if (currentMillis - previousMillis > timerDataUpdate)
   {
     previousMillis = currentMillis;
-    
+
     //getting current battery status and send info to USS
     batteryPower=analogRead(3);
     sendData();
@@ -502,7 +502,6 @@ void sendPIDSettings()
     buffer[2*i+14] = value & 0xFF;
     buffer[2*i+15] = (value >> 8) & 0xFF;
   }
-  
   Serial.write(buffer, maxPacketSize);
 }
 
@@ -512,6 +511,6 @@ void sendMixerSettings()
 
 void updateEngineParameters()
 {
-  for(int i=0; i<4; i++)
+for(int i=0; i<4; i++)
    enginesX_obj[i].writeMicroseconds(enginesX[i]);
 }
